@@ -18,7 +18,7 @@ CFLG_FP    := -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3 -mno-sse4.1 \
 
 CFLG_32    := -m32 -g -fno-pic
 CFLG_WRN   := -Wall -W -Werror
-CFLG_KRN   := -pipe -nostdlib -nostdinc -ffreestanding -fms-extensions
+CFLG_KRN   := -pipe -nostdlib -nostdinc -ffreestanding -fms-extensions -fno-stack-protector
 CFLG_REL   := -DRELEASE=\"secos-$(RELEASE)\"
 CFLAGS     := $(CFLG_WRN) $(CFLG_FP) $(CFLG_KRN) $(CFLG_32) $(CFLG_REL)
 
@@ -50,11 +50,11 @@ TARGET     := kernel.elf
 # Qemu options
 QEMU := $(shell which qemu-system-i386)
 #QEMU := $(shell which kvm)
-QFDA := -drive media=disk,format=raw,if=floppy,file=../utils/grub.floppy
-QHDD := -drive media=disk,format=raw,if=ide,index=0,file=fat:rw:.
+QFDA := -drive media=disk,format=raw,if=ide,index=0,file=../utils/grub
+QHDD := -drive media=disk,format=raw,if=ide,index=1,file=fat:rw:.
 QSRL := -serial mon:stdio
 QDBG := -d int,pcall,cpu_reset,unimp,guest_errors
-QOPT := $(QFDA) $(QHDD) $(QSRL) -boot a -nographic
+QOPT := $(QFDA) $(QHDD) $(QSRL) -machine q35 -enable-kvm -s -boot a -nographic
 
 ifneq ($(findstring "kvm",$(QEMU)),)
 QOPT += -cpu host
