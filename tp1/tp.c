@@ -2,10 +2,13 @@
 #include <debug.h>
 #include <info.h>
 #include <segmem.h>
+#include <string.h>
 
 extern info_t *info;
 
 seg_desc_t __attribute__((section(".gdt"),aligned(8))) mygdt[1<<13];
+
+static uint16_t gdt_size = 0;
 
 void print_gdt() {
     gdt_reg_t gdtr;
@@ -56,35 +59,61 @@ void reload_segment_selectors() {
     set_gs(gdt_seg_sel(2, 0));
 }
 
-void set_gdt_flat() {
-    // zero out the table
-    for (size_t i = 0; i < sizeof(mygdt)/sizeof(mygdt[0]); i++) {
-        mygdt[i].raw = 0;
-    }
-    for (int i = 1; i < 3; i++) {
-        // start at 0x0
-        SET_BASE_FOR_SEG_DESCR(mygdt+i, 0x0);
-        // limit at 4GiB
-        SET_LIMIT_FOR_SEG_DESCR(mygdt+i, (1<<20)-1);
-        // present
-        mygdt[i].p = 1;
-        // code/data
-        mygdt[i].s = 1;
-        // use pages instead of bytes
-        mygdt[i].g = 1;
-        // ring 0
-        mygdt[i].dpl = 0;
-        // set length to 32bits
-        mygdt[i].d = 1;
-    }
-    mygdt[1].type = SEG_DESC_CODE_XRA;
-    mygdt[2].type = SEG_DESC_DATA_RWA;
-
+void update_gdtr() {
     gdt_reg_t new_gdtr;
-    new_gdtr.limit = 3*sizeof(seg_desc_t)-1;
+    new_gdtr.limit = gdt_size*sizeof(seg_desc_t)-1;
     new_gdtr.desc = &mygdt[0];
     set_gdtr(new_gdtr);
     reload_segment_selectors();
+}
+
+void init_segment(seg_desc_t *desc, uint32_t base, uint64_t end) {
+    desc->raw = 0;
+
+    SET_BASE_FOR_SEG_DESCR(desc, base);
+
+    uint64_t len = end - base;
+    if (len > 1<<20) {
+        // cannot be encoded with a byte granularity, let's round to the upper page
+        uint32_t len_pages = len>>12;
+        if (len%(1<<12) != 0) {
+            len_pages++;
+        }
+
+        SET_LIMIT_FOR_SEG_DESCR(desc, len_pages-1);
+        desc->g = 1;
+    } else {
+        SET_LIMIT_FOR_SEG_DESCR(desc, len-1);
+        desc->g = 0;
+    }
+
+    // present
+    desc->p = 1;
+    // code/data
+    desc->s = 1;
+    // ring 0
+    desc->dpl = 0;
+    // set length to 32bits
+    desc->d = 1;
+}
+
+void init_gdt_flat() {
+    // zero out the table
+    memset(mygdt, 0, sizeof(mygdt));
+
+    // create flat data & code segments
+    init_segment(&mygdt[1], 0, (uint64_t)1<<32);
+    mygdt[1].type = SEG_DESC_CODE_XR;
+    init_segment(&mygdt[2], 0, (uint64_t)1<<32);
+    mygdt[2].type = SEG_DESC_DATA_RW;
+
+    gdt_size = 3;
+    update_gdtr();
+}
+
+void add_segment_to_gdt(seg_desc_t seg) {
+    mygdt[gdt_size++] = seg;
+    update_gdtr();
 }
 
 void tp() {
@@ -95,8 +124,32 @@ void tp() {
     debug("Before:\n");
     print_gdt();
 
-    set_gdt_flat();
+    init_gdt_flat();
 
     debug("After:\n");
     print_gdt();
+
+    char  src[64];
+    char  real_dst[64];
+    char *dst = 0;
+
+    memset(src, 0xff, 64);
+
+    src[0] = 0x11;
+    src[1] = 0x12;
+    src[2] = 0x13;
+    src[3] = 0x14;
+
+    seg_desc_t seg;
+    init_segment(&seg, (uint32_t)&real_dst[0], ((uint32_t)&real_dst[0])+0x20);
+    seg.type = SEG_DESC_DATA_RW;
+    add_segment_to_gdt(seg);
+
+    debug("%x\n", *((uint32_t*)real_dst));
+
+    set_es(gdt_seg_sel(3, 0));
+    _memcpy8(dst, src, 32);
+    set_es(gdt_seg_sel(2, 0));
+
+    debug("%x\n", *((uint32_t*)real_dst));
 }
