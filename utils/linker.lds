@@ -8,6 +8,7 @@ PHDRS
 {
    phboot  PT_LOAD FLAGS (7);
    phstack PT_LOAD FLAGS (6);
+   phrw    PT_LOAD FLAGS (6);
    phsetup PT_LOAD FLAGS (7);
 }
 
@@ -25,6 +26,7 @@ SECTIONS
    .data     : { *(.data)                        } : phsetup
    .bss      : { *(.bss COMMON)                  } : phsetup
    /DISCARD/ : { *(.note* .indent .comment)      } : phsetup
+   .gdt      : { *(.gdt)                         } : phrw
 
    __kernel_end__ = .;
 }

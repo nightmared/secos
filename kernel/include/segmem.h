@@ -106,6 +106,11 @@ typedef union segment_descriptor
 
 } __attribute__((packed)) seg_desc_t;
 
+#define GET_BASE_FROM_SEG_DESCR(seg) ((seg)->base_1|((seg)->base_2<<16)|((seg)->base_3<<24))
+#define GET_LIMIT_FROM_SEG_DESCR(seg) ((seg)->limit_1|((seg)->limit_2<<16))
+#define SET_BASE_FOR_SEG_DESCR(seg, base) ({ (seg)->base_1 = (base) & ((1<<16)-1); (seg)->base_2 = ((base)>>16)&((1<<8)-1); (seg)->base_3 = (base)>>24; })
+#define SET_LIMIT_FOR_SEG_DESCR(seg, limit) ({ (seg)->limit_1 = (limit) & ((1<<16)-1); (seg)->limit_2 = (limit)>>16; })
+
 /*
 ** Global descriptor table
 */
@@ -246,6 +251,7 @@ typedef struct task_state_segment
 #define set_seg_sel(_sel_,_reg_)                        \
    asm volatile ("movw %%ax, %%"#_reg_ ::"a"(_sel_))
 
+#define get_cs()     get_seg_sel(cs)
 #define get_ss()     get_seg_sel(ss)
 #define get_ds()     get_seg_sel(ds)
 #define get_es()     get_seg_sel(es)
