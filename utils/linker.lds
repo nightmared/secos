@@ -26,7 +26,8 @@ SECTIONS
    .data     : { *(.data)                        } : phsetup
    .bss      : { *(.bss COMMON)                  } : phsetup
    /DISCARD/ : { *(.note* .indent .comment)      } : phsetup
-   .gdt      : { *(.gdt)                         } : phrw
+   __gdt_start__ = .;
+   .gdt      : { KEEP(*(.gdt))                   } : phrw
 
    __kernel_end__ = .;
 }

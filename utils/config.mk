@@ -26,11 +26,12 @@ CFLAGS     := $(CFLG_WRN) $(CFLG_FP) $(CFLG_KRN) $(CFLG_32) $(CFLG_REL)
 INCLUDE    := -I../kernel/include
 CORE       := ../kernel/core/
 
-core_obj   :=	entry.o \
-		start.o \
-		print.o \
+core_obj   :=	entry.o	\
+		start.o	\
+		print.o	\
 		uart.o	\
-		pic.o 	\
+		pic.o	\
+		gdt.o	\
 		intr.o	\
 		idt.o	\
 		excp.o	\

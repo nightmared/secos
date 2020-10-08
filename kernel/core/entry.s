@@ -3,6 +3,10 @@
 .align 16
 .space 0x2000
 
+.section .gdt, "aw", @nobits
+.align 8
+.space 0x10000
+
 .text
 .globl entry
 .type  entry,"function"
