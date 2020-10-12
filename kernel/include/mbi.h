@@ -32,5 +32,7 @@ typedef int (*mbi_opt_hdl_t)(char*, void*);
 void mbi_check_boot_loader(mbi_t*);
 int  mbi_get_opt(mbi_t*, module_t*, char*, mbi_opt_hdl_t, void*);
 
+void print_mbi_memory_headers();
+
 #endif
 

@@ -8,17 +8,21 @@
 extern info_t *info;
 
 void tp() {
+    debug("\nMultiboot memory information:\n");
+    print_mbi_memory_headers();
+
+    debug("\nGDT description:\n");
+
     // RESULT:
     // Empty segment descriptor !?
     // Empty segment descriptor !?
     // 0x0        - 0xfffff000 (ring: 0, present, kind: code)
     // 0x0        - 0xfffff000 (ring: 0, present, kind: data)
-    debug("Before:\n");
     print_gdt();
 
     init_gdt_flat();
 
-    debug("After:\n");
+    debug("\nNew GDT description:\n");
     print_gdt();
 
     char  src[64];

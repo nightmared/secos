@@ -5,6 +5,9 @@ extern int __gdt_start__;
 seg_desc_t *mygdt = (seg_desc_t*)&__gdt_start__;
 
 static uint16_t gdt_size = 0;
+static uint16_t gdt_code_idx = 1;
+static uint16_t gdt_data_idx = 2;
+
 
 void print_gdt() {
     gdt_reg_t gdtr;
@@ -46,12 +49,12 @@ void print_gdt() {
 }
 
 void reload_segment_selectors() {
-    set_cs(gdt_seg_sel(1, 0));
-    set_ss(gdt_seg_sel(2, 0));
-    set_ds(gdt_seg_sel(2, 0));
-    set_es(gdt_seg_sel(2, 0));
-    set_fs(gdt_seg_sel(2, 0));
-    set_gs(gdt_seg_sel(2, 0));
+    set_cs_with_iret(gdt_seg_sel(gdt_code_idx, 0));
+    set_ss(gdt_seg_sel(gdt_data_idx, 0));
+    set_ds(gdt_seg_sel(gdt_data_idx, 0));
+    set_es(gdt_seg_sel(gdt_data_idx, 0));
+    set_fs(gdt_seg_sel(gdt_data_idx, 0));
+    set_gs(gdt_seg_sel(gdt_data_idx, 0));
 }
 
 void update_gdtr() {
@@ -98,9 +101,9 @@ void init_gdt_flat() {
     memset(mygdt, 0, 1<<13);
 
     // create flat data & code segments
-    init_segment(&mygdt[1], 0, (uint64_t)1<<32);
+    init_segment(&mygdt[gdt_code_idx], 0, (uint64_t)1<<32);
     mygdt[1].type = SEG_DESC_CODE_XR;
-    init_segment(&mygdt[2], 0, (uint64_t)1<<32);
+    init_segment(&mygdt[gdt_data_idx], 0, (uint64_t)1<<32);
     mygdt[2].type = SEG_DESC_DATA_RW;
 
     gdt_size = 3;

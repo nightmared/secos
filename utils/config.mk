@@ -31,6 +31,7 @@ core_obj   :=	entry.o	\
 		print.o	\
 		uart.o	\
 		pic.o	\
+		mbi.o	\
 		gdt.o	\
 		intr.o	\
 		idt.o	\

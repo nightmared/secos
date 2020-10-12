@@ -288,5 +288,23 @@ typedef struct task_state_segment
    asm volatile ("ljmp  %0, %1"::"i"(_cs), "i"(_eip))
 #define set_cs(_cs)               \
    asm volatile ("ljmp  %0, $1f ; 1:"::"i"(_cs))
+#define set_cs_with_iret(_cs) \
+   asm volatile ( \
+      "pushf \n\t" \
+      "push %0 \n\t" \
+      "lea next, %%eax \n\t" \
+      "push %%eax \n\t" \
+      "iret \n\t" \
+      "next:" \
+      :: "a"(_cs) \
+   );
+#define farjump_with_iret(_cs, _eip) \
+   asm volatile ( \
+      "pushf \n\t" \
+      "push %0 \n\t" \
+      "push %1 \n\t" \
+      "iret" \
+      :: "a"(_cs), "b"(_eip) \
+   );
 
 #endif
