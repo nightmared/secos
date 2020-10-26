@@ -1,2 +1,2 @@
-file ./tp1/kernel.elf
+file ./tp2/kernel.elf
 target remote :1234

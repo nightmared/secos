@@ -4,8 +4,9 @@
 
 #include <types.h>
 #include <print.h>
+#include <pit.h>
 
-#define debug(format, ...) printf(format, ## __VA_ARGS__)
+#define debug(format, ...) printf("[DEBUG, time: %lld ms]\n" format, get_time_ms(), ## __VA_ARGS__)
 void stack_trace(offset_t);
 
 #endif

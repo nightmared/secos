@@ -11,5 +11,5 @@ void tp() {
     debug("kernel mem [0x%x - 0x%x]\n", &__kernel_start__, &__kernel_end__);
     debug("MBI flags 0x%x\n", info->mbi->flags);
 
-   print_mbi_memory_headers();
+    print_mbi_memory_headers();
 }

@@ -1,7 +1,9 @@
 /* GPLv2 (c) Airbus */
 #include <intr.h>
+#include <pic.h>
 #include <debug.h>
 #include <info.h>
+#include <io.h>
 
 extern info_t *info;
 extern void idt_trampoline();
@@ -26,6 +28,12 @@ void intr_init()
 
 void __regparm__(1) intr_hdlr(int_ctx_t *ctx)
 {
+   uint8_t vector = ctx->nr.blow;
+
+   if(vector >= NR_EXCP) {
+       return pic_handler(ctx);
+   }
+
    debug("\nIDT event\n"
          " . int    #%d\n"
          " . error  0x%x\n"
@@ -54,10 +62,5 @@ void __regparm__(1) intr_hdlr(int_ctx_t *ctx)
          ,ctx->gpr.esi.raw
          ,ctx->gpr.edi.raw);
 
-   uint8_t vector = ctx->nr.blow;
-
-   if(vector < NR_EXCP)
       excp_hdlr(ctx);
-   else
-      debug("ignore IRQ %d\n", vector);
 }

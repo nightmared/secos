@@ -4,6 +4,7 @@
 
 #include <types.h>
 #include <io.h>
+#include <intr.h>
 
 /*
 ** Intel 8259a
@@ -255,6 +256,7 @@ typedef union pic_operation_control_word_3
 ** Functions
 */
 void pic_init();
+void pic_handler(int_ctx_t *ctx);
 
 #endif
 

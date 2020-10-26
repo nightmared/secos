@@ -25,7 +25,7 @@ void print_gdt() {
         }
 
         if (desc->raw == 0) {
-            debug("Empty segment descriptor\n");
+            printf("Empty segment descriptor\n");
         } else {
             char *presence = "present";
             if (!desc->p) {
@@ -41,7 +41,7 @@ void print_gdt() {
             } else {
                 kind = "system";
             }
-            debug("0x%-8x - 0x%-8llx (ring: %d, %s, kind: %s)\n", base_addr, base_addr+multiplier*limit, desc->dpl, presence, kind);
+            printf("0x%-8x - 0x%-8llx (ring: %d, %s, kind: %s)\n", base_addr, base_addr+multiplier*limit, desc->dpl, presence, kind);
         }
 
         desc++;

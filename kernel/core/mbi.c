@@ -22,7 +22,7 @@ void print_mbi_memory_headers() {
                 default:
                     type = "unknown";
             }
-            debug("0x%-8x - 0x%-9llx (size: 0x%x bytes, usage: %s)\n", (uint32_t)mmap_info->addr, mmap_info->addr+mmap_info->len, (uint32_t)mmap_info->len, type);
+            printf("0x%-8x - 0x%-9llx (size: 0x%x bytes, usage: %s)\n", (uint32_t)mmap_info->addr, mmap_info->addr+mmap_info->len, (uint32_t)mmap_info->len, type);
             mmap_info = (memory_map_t*)((uint32_t)mmap_info+mmap_info->size+sizeof(mmap_info->size));
         }
     }
