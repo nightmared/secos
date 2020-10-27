@@ -7,9 +7,9 @@ static bool_t initialized = false;
 void pit_init() {
     // set channel 0 to 'rate generator'
     out(0x34, 0x43);
-    // set reload count to 0 (=65536), 
+    // set reload count to 1024 (~0.9ms / interrupt)
     out(0x0, 0x40);
-    out(0x0, 0x40);
+    out(0x4, 0x40);
 }
 
 void time_incr() {
@@ -23,5 +23,5 @@ void time_incr() {
 }
 
 uint64_t get_time_ms() {
-    return (double)started_time*65536/1.1931816666e3;
+    return (double)started_time*1024/1.1931816666e3;
 }

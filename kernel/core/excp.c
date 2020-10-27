@@ -36,12 +36,12 @@ void __regparm__(1) excp_hdlr(int_ctx_t *ctx)
    switch(ctx->nr.blow)
    {
    case NMI_EXCP:
-      debug("#NMI (ignored)\n");
+      printf("#NMI (ignored)\n");
       return;
 
    case PF_EXCP:
    {
-      debug("#PF details: p:%d wr:%d us:%d id:%d addr 0x%x\n"
+      printf("#PF details: p:%d wr:%d us:%d id:%d addr 0x%x\n"
             ,ctx->err.pf.p
             ,ctx->err.pf.wr
             ,ctx->err.pf.us
@@ -50,7 +50,7 @@ void __regparm__(1) excp_hdlr(int_ctx_t *ctx)
       break;
    }
    case GP_EXCP:
-      debug("#GP details: ext:%d idt:%d ti:%d index:%d\n"
+      printf("#GP details: ext:%d idt:%d ti:%d index:%d\n"
             ,ctx->err.sl.ext
             ,ctx->err.sl.idt
             ,ctx->err.sl.ti
@@ -58,8 +58,8 @@ void __regparm__(1) excp_hdlr(int_ctx_t *ctx)
       break;
    }
 
-   debug("cr0 = %p\n", get_cr0());
-   debug("cr4 = %p\n", get_cr4());
+   printf("cr0 = %p\n", get_cr0());
+   printf("cr4 = %p\n", get_cr4());
    stack_trace(ctx->gpr.ebp.raw);
    panic("fatal exception !\n");
 }

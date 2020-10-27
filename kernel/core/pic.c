@@ -60,7 +60,7 @@ void pic_init()
 void pic_handler(int_ctx_t *ctx) {
     switch (ctx->nr.blow) {
     case PIC_OFFSET:
-        debug("Timer interrupt\n");
+        //debug("Timer interrupt\n");
         time_incr();
 
     break;

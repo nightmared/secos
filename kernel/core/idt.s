@@ -40,7 +40,6 @@ idt_common:
         pusha
         mov     %esp, %eax
         call    intr_hdlr
-
 resume_from_intr:
         popa
         add     $8, %esp
@@ -75,6 +74,13 @@ idt_trampoline:
         pushl   $-1
         pushl   $3
         jmp     idt_common
+        //sub     $8, %esp
+        //pusha
+        //mov     %esp, %eax
+        //call    bp_handler
+        //popa
+        //add     $8, %esp
+        //iret
 
 /* overflow (no) */
         .align  16

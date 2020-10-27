@@ -1,5 +1,6 @@
 /* GPLv2 (c) Airbus */
 #include <print.h>
+#include <debug.h>
 #include <uart.h>
 #include <string.h>
 #include <asm.h>
@@ -13,6 +14,7 @@ void panic(const char *format, ...)
    force_interrupts_off();
 
    va_start(params, format);
+   debug("");
    __vprintf(format, params);
    va_end(params);
 
