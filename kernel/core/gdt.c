@@ -5,7 +5,7 @@ seg_desc_t *mygdt = (seg_desc_t*)&__gdt_start__;
 
 uint16_t gdt_size = 0;
 uint16_t gdt_code_idx = 1;
-uint16_t gdt_data_idx = 2;
+uint16_t gdt_data_idx = 3;
 uint16_t gdt_tss_idx = 5;
 
 
@@ -24,6 +24,7 @@ void print_gdt() {
             multiplier = 1<<12;
         }
 
+        printf("%02p: ", (uint32_t)desc-(uint32_t)gdtr.desc);
         if (desc->raw == 0) {
             printf("Empty segment descriptor\n");
         } else {
@@ -41,7 +42,7 @@ void print_gdt() {
             } else {
                 kind = "system";
             }
-            printf("0x%-8x - 0x%-8llx (ring: %d, %s, kind: %s)\n", base_addr, base_addr+multiplier*limit, desc->dpl, presence, kind);
+            printf("0x%-8x - 0x%-8llx (ring: %d, %s, kind: %s)\n", base_addr, base_addr+multiplier*(limit+1)-1, desc->dpl, presence, kind);
         }
 
         desc++;
@@ -116,12 +117,13 @@ void init_gdt_flat() {
     mygdt[gdt_data_idx+GDT_RING3_OFFSET].type = SEG_DESC_DATA_RW;
     mygdt[gdt_data_idx+GDT_RING3_OFFSET].dpl = 3; // ring3
     init_segment(&mygdt[gdt_tss_idx], (uint32_t)&__tss_start__, (uint32_t)&__tss_start__+sizeof(tss_t));
+    mygdt[gdt_tss_idx].d = 0;
     mygdt[gdt_tss_idx].g = 0;
     mygdt[gdt_tss_idx].s = 0; // system kind
     mygdt[gdt_tss_idx].type = SEG_DESC_SYS_TSS_AVL_32;
-    mygdt[gdt_tss_idx].dpl = 3; // ring 3
+    mygdt[gdt_tss_idx].dpl = 3;
 
-    gdt_size = 6;
+    gdt_size = gdt_tss_idx+1;
     update_gdtr();
 }
 

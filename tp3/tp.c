@@ -9,26 +9,27 @@
 void userland() {
     printf("test\n");
     asm volatile("int3");
-    uint32_t cr0 = 0;
-    asm volatile("mov %0, %%cr0" : "=a"(cr0));
-    debug("test %d\n", cr0);
+    asm volatile("mov %eax, %cr0");
 }
 
-tss_t *tss = (tss_t*)&__tss_start__;
 
-static uint8_t userland_stack[0x8000];
+uint8_t userland_stack[0x4000] __attribute__((aligned(16)));
+uint8_t kernelland_stack[0x4000] __attribute__((aligned(16)));
 
 inline void __attribute__((always_inline)) update_tss() {
-    uint32_t esp0 = 0;
-    asm volatile("mov %0, %%esp" : "=r"(esp0));
-    tss->s0.esp = esp0;
-    asm volatile("ltr %%ax" :: "a"(gdt_seg_sel(gdt_tss_idx, 3)));
+    tss_t *kernel_tss = (tss_t*)&__tss_start__;
+    //uint32_t esp0 = 0;
+    //asm volatile("mov %0, %%esp" : "=r"(esp0));
+    //kernel_tss->s0.esp = esp0;
+    kernel_tss->s0.esp = (uint32_t)&kernelland_stack+sizeof(kernelland_stack);
+    asm volatile("ltr %%ax" :: "a"(gdt_seg_sel(gdt_tss_idx, 0)));
 }
 
 void spawn_task(void* fun) {
     update_tss();
-    uint16_t data_sel = gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3);
     uint16_t code_sel = gdt_seg_sel(gdt_code_idx+GDT_RING3_OFFSET, 3);
+    uint16_t data_sel = gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3);
+    printf("0x%x 0x%x\n", data_sel, code_sel);
     asm volatile(
         "mov %%ds, %2 \n\t"
         "mov %%es, %2 \n\t"
@@ -40,7 +41,7 @@ void spawn_task(void* fun) {
         "push %0 \n\t"
         "push %1 \n\t"
         "iret"
-        :: "r"(code_sel), "r"(fun), "r"(data_sel), "r"(userland_stack+sizeof(userland_stack)): "eax"
+        :: "r"(code_sel), "r"(fun), "r"(data_sel), "r"((uint32_t)&userland_stack+sizeof(userland_stack))
     );
 }
 
@@ -55,11 +56,18 @@ void tp() {
     // enable interrupts
     asm volatile("sti");
 
-    // init the TSS
-    memset(tss, 0, sizeof(tss_t));
-    tss->s0.ss = gdt_seg_sel(gdt_data_idx, 0);
-    tss->maps.addr = (uint32_t)&__tss_start__+sizeof(tss_t);
-    memset(tss->maps.io, 0xff, sizeof(tss->maps.io));
+    // init the kernel TSS
+    tss_t *kernel_tss = (tss_t*)&__tss_start__;
+    memset(kernel_tss, 0, sizeof(tss_t));
+    kernel_tss->s0.ss = gdt_seg_sel(gdt_data_idx, 0);
+    //kernel_tss->maps.addr = (uint32_t)&__tss_start__+sizeof(tss_t);
+    //memset(kernel_tss->maps.io, 0xff, sizeof(kernel_tss->maps.io));
+
+    // init the userlansd TSS
+    //tss_t *userland_tss = (tss_t*)&__tss_start__+0x2500;
+    //userland_tss->s0.ss = gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3);
+    //memset(userland_tss->maps.io, 0xff, sizeof(userland_tss->maps.io));
+
 
     spawn_task(userland);
 

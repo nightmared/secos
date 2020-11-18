@@ -26,10 +26,16 @@ SECTIONS
    .data     : { *(.data)                        } : phsetup
    .bss      : { *(.bss COMMON)                  } : phsetup
    /DISCARD/ : { *(.note* .indent .comment)      } : phsetup
+   
+   __kernel_end__ = .;
+
+   . = 0x600000;
+   __pdt_start__ = .;
+   .pdt      : { KEEP(*(.pdt))                   } : phrw
+   __pt_start__ = .;
+   .pt       : { KEEP(*(.pt))                    } : phrw
    __gdt_start__ = .;
    .gdt      : { KEEP(*(.gdt))                   } : phrw
    __tss_start__ = .;
    .tss      : { KEEP(*(.tss))                   } : phrw
-
-   __kernel_end__ = .;
 }

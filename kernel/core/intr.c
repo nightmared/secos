@@ -52,7 +52,7 @@ void __regparm__(1) intr_hdlr(int_ctx_t *ctx)
          "edi     : 0x%x\n"
          ,ctx->nr.raw, ctx->err.raw
          ,ctx->cs.raw, ctx->eip.raw
-         ,ctx->ss.raw, ctx->esp.raw
+         ,ctx->ss.raw & ((1<<16)-1), ctx->esp.raw
          ,ctx->eflags.raw
          ,ctx->gpr.eax.raw
          ,ctx->gpr.ecx.raw

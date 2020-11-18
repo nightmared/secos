@@ -4,6 +4,8 @@
 
 #include <types.h>
 
+extern int __pdt_start__, __pt_start__;
+
 /*
 ** Paging bits accessing
 */

@@ -11,6 +11,14 @@
 .align 8
 .space 0x2500
 
+.section .pdt, "aw", @nobits
+.align 0x1000
+.space 0x1000
+
+.section .pt, "aw", @nobits
+.align 0x1000
+.space 0x400000
+
 .text
 .globl entry
 .type  entry,"function"
