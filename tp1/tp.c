@@ -43,9 +43,9 @@ void tp() {
 
     //debug("%x\n", *((uint32_t*)real_dst));
 
-    set_es(gdt_seg_sel(3, 0));
+    set_es(gdt_seg_sel(gdt_size-1, 0));
     _memcpy8(dst, src, 32);
-    set_es(gdt_seg_sel(2, 0));
+    set_es(gdt_seg_sel(gdt_data_idx, 0));
 
     //debug("%x\n", *((uint32_t*)real_dst));
 }

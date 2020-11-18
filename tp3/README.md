@@ -58,6 +58,9 @@ void userland()
 
 **Que se passe-t-il lors du chargement de SS ?**
 
+«Privilege level checking also occurs when the SS register is loaded with the segment selector for a stack segment. Here all privilege levels related to the stack segment must match the CPL; that is, the CPL, the RPL of the stack-segment selector, and the DPL of the stack-segment descriptor must be the same. If the RPL and DPL are not equal to the CPL, a general-protection exception (#GP) is generated.»
+
+
 ---
 
 ### Question 3.3

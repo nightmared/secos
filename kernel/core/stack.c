@@ -1,9 +1,7 @@
 /* GPLv2 (c) Airbus */
 #include <debug.h>
 #include <info.h>
-
-extern info_t   *info;
-extern offset_t __kernel_start__;
+#include <stack.h>
 
 void stack_trace(offset_t from)
 {

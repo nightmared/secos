@@ -1,12 +1,12 @@
 #include <gdt.h>
 #include <debug.h>
 
-extern int __gdt_start__;
 seg_desc_t *mygdt = (seg_desc_t*)&__gdt_start__;
 
-static uint16_t gdt_size = 0;
-static uint16_t gdt_code_idx = 1;
-static uint16_t gdt_data_idx = 2;
+uint16_t gdt_size = 0;
+uint16_t gdt_code_idx = 1;
+uint16_t gdt_data_idx = 2;
+uint16_t gdt_tss_idx = 5;
 
 
 void print_gdt() {
@@ -101,12 +101,27 @@ void init_gdt_flat() {
     memset(mygdt, 0, 1<<13);
 
     // create flat data & code segments
-    init_segment(&mygdt[gdt_code_idx], 0, (uint64_t)1<<32);
-    mygdt[1].type = SEG_DESC_CODE_XR;
-    init_segment(&mygdt[gdt_data_idx], 0, (uint64_t)1<<32);
-    mygdt[2].type = SEG_DESC_DATA_RW;
 
-    gdt_size = 3;
+    // kernel entries
+    init_segment(&mygdt[gdt_code_idx], 0, (uint64_t)1<<32);
+    mygdt[gdt_code_idx].type = SEG_DESC_CODE_XR;
+    init_segment(&mygdt[gdt_data_idx], 0, (uint64_t)1<<32);
+    mygdt[gdt_data_idx].type = SEG_DESC_DATA_RW;
+
+    // userland entries
+    init_segment(&mygdt[gdt_code_idx+GDT_RING3_OFFSET], 0, (uint64_t)1<<32);
+    mygdt[gdt_code_idx+GDT_RING3_OFFSET].type = SEG_DESC_CODE_XR;
+    mygdt[gdt_code_idx+GDT_RING3_OFFSET].dpl = 3; // ring3
+    init_segment(&mygdt[gdt_data_idx+GDT_RING3_OFFSET], 0, (uint64_t)1<<32);
+    mygdt[gdt_data_idx+GDT_RING3_OFFSET].type = SEG_DESC_DATA_RW;
+    mygdt[gdt_data_idx+GDT_RING3_OFFSET].dpl = 3; // ring3
+    init_segment(&mygdt[gdt_tss_idx], (uint32_t)&__tss_start__, (uint32_t)&__tss_start__+sizeof(tss_t));
+    mygdt[gdt_tss_idx].g = 0;
+    mygdt[gdt_tss_idx].s = 0; // system kind
+    mygdt[gdt_tss_idx].type = SEG_DESC_SYS_TSS_AVL_32;
+    mygdt[gdt_tss_idx].dpl = 3; // ring 3
+
+    gdt_size = 6;
     update_gdtr();
 }
 

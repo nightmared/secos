@@ -28,6 +28,8 @@ SECTIONS
    /DISCARD/ : { *(.note* .indent .comment)      } : phsetup
    __gdt_start__ = .;
    .gdt      : { KEEP(*(.gdt))                   } : phrw
+   __tss_start__ = .;
+   .tss      : { KEEP(*(.tss))                   } : phrw
 
    __kernel_end__ = .;
 }

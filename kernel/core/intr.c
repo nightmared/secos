@@ -1,6 +1,7 @@
 /* GPLv2 (c) Airbus */
 #include <intr.h>
 #include <pic.h>
+#include <gdt.h>
 #include <debug.h>
 #include <info.h>
 #include <io.h>
@@ -19,7 +20,7 @@ void intr_init()
 
    /* re-use default grub GDT code descriptor */
    for(i=0 ; i<IDT_NR_DESC ; i++, isr += IDT_ISR_ALGN)
-      int_desc(&IDT[i], gdt_krn_seg_sel(1), isr);
+      int_desc(&IDT[i], gdt_krn_seg_sel(gdt_code_idx), isr);
 
    idtr.desc  = IDT;
    idtr.limit = sizeof(IDT) - 1;

@@ -4,6 +4,13 @@
 #include <segmem.h>
 #include <string.h>
 
+// offset wrt. gdt_code_idx and gdt_data_idx to get the corresponding userland (ring3) entrries
+#define GDT_RING3_OFFSET 2
+
+// theses objects are (they do not point !) at the start of the respective gdt and tss
+extern int __gdt_start__, __tss_start__;
+extern uint16_t gdt_size, gdt_code_idx, gdt_data_idx, gdt_tss_idx;
+
 void print_gdt();
 void reload_segment_selectors();
 void update_gdtr();

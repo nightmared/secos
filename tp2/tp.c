@@ -13,12 +13,14 @@ struct handler_info {
 
 void bp_handler() {
     struct handler_info *args;
-    asm volatile("lea 4(%%ebp), %0" : "=a"(args));
+    asm volatile("pusha \n\t"
+            "lea 4(%%ebp), %0" : "=a"(args));
 
     debug("Breakpoint Handler called!\n");
     printf("args=%p, eip=0x%x, cs=0x%x, eflags=0x%x\n", args, args->eip, args->cs, args->eflags);
 
     asm volatile(
+        "popa \n\t"
         "mov %ebp, %esp \n\t"
         "pop %ebp \n\t"
         "iret"
@@ -50,7 +52,7 @@ void tp() {
     debug("IDT located at 0x%llx\n", idtr.desc); 
 
     // overwrite the fourth entry of the IDT (#BP)
-    int_desc(idtr.desc+3, gdt_krn_seg_sel(1), (unsigned int)bp_handler);
+    int_desc(idtr.desc+3, gdt_krn_seg_sel(gdt_code_idx), (unsigned int)bp_handler);
 
     bp_trigger();
 }

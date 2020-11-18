@@ -57,7 +57,7 @@ QFDA := -drive media=disk,format=raw,if=ide,index=0,file=../utils/grub
 QHDD := -drive media=disk,format=raw,if=ide,index=1,file=fat:rw:.
 QSRL := -serial mon:stdio
 QDBG := -d int,pcall,cpu_reset,unimp,guest_errors
-QOPT := $(QFDA) $(QHDD) $(QSRL) $(QGDB) -machine q35 -enable-kvm -s -boot a -nographic
+QOPT := $(QFDA) $(QHDD) $(QSRL) $(QGDB) -machine q35 -enable-kvm -boot a -nographic
 
 ifneq ($(findstring "kvm",$(QEMU)),)
 QOPT += -cpu host

@@ -7,6 +7,10 @@
 .align 8
 .space 0x10000
 
+.section .tss, "aw", @nobits
+.align 8
+.space 0x2500
+
 .text
 .globl entry
 .type  entry,"function"
