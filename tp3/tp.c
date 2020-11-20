@@ -6,12 +6,15 @@
 #include <segmem.h>
 #include <stack.h>
 
+#define back_to_kernel() asm volatile ("int $0x80")
+
 void userland() {
     printf("test\n");
-    asm volatile("int3");
-    asm volatile("mov %eax, %cr0");
+    //asm volatile("int3");
+    //asm volatile("mov %eax, %cr0");
+    back_to_kernel();
+    printf("fdljdknghflgv,\n");
 }
-
 
 uint8_t userland_stack[0x4000] __attribute__((aligned(16)));
 uint8_t kernelland_stack[0x4000] __attribute__((aligned(16)));
@@ -19,7 +22,7 @@ uint8_t kernelland_stack[0x4000] __attribute__((aligned(16)));
 inline void __attribute__((always_inline)) update_tss() {
     tss_t *kernel_tss = (tss_t*)&__tss_start__;
     //uint32_t esp0 = 0;
-    //asm volatile("mov %0, %%esp" : "=r"(esp0));
+    //asm volatile("mov %%esp, %0" : "=m"(esp0));
     //kernel_tss->s0.esp = esp0;
     kernel_tss->s0.esp = (uint32_t)&kernelland_stack+sizeof(kernelland_stack);
     asm volatile("ltr %%ax" :: "a"(gdt_seg_sel(gdt_tss_idx, 0)));
@@ -27,14 +30,14 @@ inline void __attribute__((always_inline)) update_tss() {
 
 void spawn_task(void* fun) {
     update_tss();
-    uint16_t code_sel = gdt_seg_sel(gdt_code_idx+GDT_RING3_OFFSET, 3);
-    uint16_t data_sel = gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3);
+    uint32_t code_sel = gdt_seg_sel(gdt_code_idx+GDT_RING3_OFFSET, 3);
+    uint32_t data_sel = gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3);
     printf("0x%x 0x%x\n", data_sel, code_sel);
     asm volatile(
-        "mov %%ds, %2 \n\t"
-        "mov %%es, %2 \n\t"
-        "mov %%fs, %2 \n\t"
-        "mov %%gs, %2 \n\t"
+        "mov %2, %%ds \n\t"
+        "mov %2, %%es \n\t"
+        "mov %2, %%fs \n\t"
+        "mov %2, %%gs \n\t"
         "push %2 \n\t"
         "push %3 \n\t"
         "pushf \n\t"

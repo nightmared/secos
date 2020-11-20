@@ -37,6 +37,7 @@ core_obj   :=	entry.o	\
 		intr.o	\
 		idt.o	\
 		excp.o	\
+		syscall.o \
 		stack.o
 
 objects    := $(addprefix $(CORE), $(core_obj))
@@ -51,8 +52,8 @@ LDSCRIPT   := ../utils/linker.lds
 TARGET     := kernel.elf
 
 # Qemu options
-QEMU := $(shell which qemu-system-i386)
-#QEMU := $(shell which qemu-system-i386) -enable-kvm 
+#QEMU := $(shell which qemu-system-i386)
+QEMU := $(shell which qemu-system-i386) -enable-kvm 
 QFDA := -drive media=disk,format=raw,if=ide,index=0,file=../utils/grub
 QHDD := -drive media=disk,format=raw,if=ide,index=1,file=fat:rw:.
 QSRL := -serial mon:stdio
