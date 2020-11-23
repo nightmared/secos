@@ -52,6 +52,7 @@ resume_from_intr:
 // syscall handler
 asm_syscall_hdlr:
     pusha
+    mov %esp, %eax
     call kernel_syscall
     popa
     iret

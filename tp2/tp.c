@@ -11,9 +11,12 @@ struct handler_info {
    eflags_reg_t    eflags;
 };
 
-void bp_handler() {
+void __attribute__((naked)) bp_handler() {
     struct handler_info *args;
-    asm volatile("pusha \n\t"
+    asm volatile(
+            "push %%ebp \n\t"
+            "mov %%esp, %%ebp \n\t"
+            "pusha \n\t"
             "lea 4(%%ebp), %0" : "=a"(args));
 
     debug("Breakpoint Handler called!\n");
@@ -21,8 +24,7 @@ void bp_handler() {
 
     asm volatile(
         "popa \n\t"
-        "mov %ebp, %esp \n\t"
-        "pop %ebp \n\t"
+        "leave \n\t"
         "iret"
     );
 }

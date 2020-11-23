@@ -5,19 +5,26 @@
 #include <gdt.h>
 #include <segmem.h>
 #include <stack.h>
+#include <syscall.h>
 
-#define back_to_kernel() asm volatile ("int $0x80")
+void __attribute__((naked)) back_to_kernel() {
+    asm volatile (
+        "mov $17, %eax \n\t"
+        "int $0x80 \n\t"
+        "ret"
+    );
+}
 
 void userland() {
     printf("test\n");
     //asm volatile("int3");
     //asm volatile("mov %eax, %cr0");
-    back_to_kernel();
     printf("fdljdknghflgv,\n");
+    while (1) {
+        back_to_kernel();
+        sleep(250);
+    }
 }
-
-uint8_t userland_stack[0x4000] __attribute__((aligned(16)));
-uint8_t kernelland_stack[0x4000] __attribute__((aligned(16)));
 
 inline void __attribute__((always_inline)) update_tss() {
     tss_t *kernel_tss = (tss_t*)&__tss_start__;
@@ -32,7 +39,6 @@ void spawn_task(void* fun) {
     update_tss();
     uint32_t code_sel = gdt_seg_sel(gdt_code_idx+GDT_RING3_OFFSET, 3);
     uint32_t data_sel = gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3);
-    printf("0x%x 0x%x\n", data_sel, code_sel);
     asm volatile(
         "mov %2, %%ds \n\t"
         "mov %2, %%es \n\t"
