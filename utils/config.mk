@@ -37,6 +37,7 @@ core_obj   :=	entry.o	\
 		intr.o	\
 		idt.o	\
 		excp.o	\
+		scheduler.o \
 		syscall.o \
 		stack.o
 
