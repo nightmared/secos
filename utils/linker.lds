@@ -14,7 +14,7 @@ PHDRS
 
 SECTIONS
 {
-   . = 0x300000;
+   . = 0x100000;
    .mbh      : { KEEP(*(.mbh)) . = ALIGN(4);     } : phboot
    .stack    : { KEEP(*(.stack))                 } : phstack
 
@@ -29,7 +29,8 @@ SECTIONS
    
    __kernel_end__ = .;
 
-   . = 0x600000;
+   . = 0x200000;
+   __x86_kernel_structs_start__ = .;
    __pdt_start__ = .;
    .pdt      : { KEEP(*(.pdt))                   } : phrw
    __pt_start__ = .;
@@ -38,4 +39,5 @@ SECTIONS
    .gdt      : { KEEP(*(.gdt))                   } : phrw
    __tss_start__ = .;
    .tss      : { KEEP(*(.tss))                   } : phrw
+   __x86_kernel_structs_end__ = .;
 }

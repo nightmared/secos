@@ -34,5 +34,13 @@ int  mbi_get_opt(mbi_t*, module_t*, char*, mbi_opt_hdl_t, void*);
 
 void print_mbi_memory_headers();
 
+struct mbi_available_memory {
+    uint32_t nb_4k_pages;
+    void* base_ptr;
+};
+
+bool_t mbi_get_next_available_memory(uint8_t *offset, struct mbi_available_memory *res);
+void mbi_get_available_memory_description(uint8_t *len, struct mbi_available_memory res[*len]);
+
 #endif
 
