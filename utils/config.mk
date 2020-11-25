@@ -39,6 +39,7 @@ core_obj   :=	entry.o	\
 		excp.o	\
 		scheduler.o \
 		syscall.o \
+		paging.o \
 		stack.o
 
 objects    := $(addprefix $(CORE), $(core_obj))
@@ -56,7 +57,7 @@ TARGET     := kernel.elf
 #QEMU := $(shell which qemu-system-i386)
 QEMU := $(shell which qemu-system-i386) -enable-kvm 
 #QEMU := $(shell which kvm)
-QFDA := -drive media=disk,format=raw,if=ide,index=0,file=../utils/grub
+QFDA := -drive media=disk,format=raw,if=ide,index=0,file=../utils/grub2
 QHDD := -drive media=disk,format=raw,if=ide,index=1,file=fat:rw:.
 QSRL := -serial mon:stdio
 QDBG := -d int,pcall,cpu_reset,unimp,guest_errors 
