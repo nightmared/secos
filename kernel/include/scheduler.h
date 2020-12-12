@@ -2,10 +2,14 @@
 #define __SCHEDULER_H__
 
 #include <types.h>
+#include <task.h>
 
-extern uint8_t userland_stack[2][0x1000] __attribute__((aligned(16)));
-extern uint8_t kernelland_stack[2][0x1000] __attribute__((aligned(16)));
+extern struct elem_entry *process_list_heap;
+extern struct elem_entry *process_shared_info_heap;
 
-void spawn_task(void* fun);
+void prepare_scheduler(void);
+bool_t init_process(struct process *out_process, void* fun);
+
+void run_task(struct process *p);
 
 #endif // __SCHEDULER_H__

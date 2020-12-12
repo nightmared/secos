@@ -40,6 +40,7 @@ core_obj   :=	entry.o	\
 		scheduler.o \
 		syscall.o \
 		paging.o \
+		alloc.o \
 		stack.o
 
 objects    := $(addprefix $(CORE), $(core_obj))
@@ -54,13 +55,13 @@ LDSCRIPT   := ../utils/linker.lds
 TARGET     := kernel.elf
 
 # Qemu options
-#QEMU := $(shell which qemu-system-i386)
-QEMU := $(shell which qemu-system-i386) -enable-kvm 
+QEMU := $(shell which qemu-system-i386)
+#QEMU := $(shell which qemu-system-i386) -enable-kvm 
 #QEMU := $(shell which kvm)
 QFDA := -drive media=disk,format=raw,if=ide,index=0,file=../utils/grub2
 QHDD := -drive media=disk,format=raw,if=ide,index=1,file=fat:rw:.
 QSRL := -serial mon:stdio
-QDBG := -d int,pcall,cpu_reset,unimp,guest_errors 
+QDBG := -d mmu,int,pcall,cpu_reset,unimp,guest_errors,in_asm -D /tmp/qemu.log 
 QOPT := $(QFDA) $(QHDD) $(QSRL) $(QDBG) -machine q35 -boot a -nographic -no-reboot
 
 ifneq ($(findstring "kvm",$(QEMU)),)

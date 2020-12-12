@@ -1,5 +1,5 @@
 /* GPLv2 (c) Airbus */
-.text
+.section .userland_shared_code
 
 .globl asm_syscall_hdlr
 .type  asm_syscall_hdlr,"function"
@@ -52,6 +52,8 @@ resume_from_intr:
 // syscall handler
 asm_syscall_hdlr:
     pusha
+    // TODO: update cr3 here
+    //mov __pdt_start__, %cr3
     mov %esp, %eax
     call kernel_syscall
     popa
@@ -60,8 +62,8 @@ asm_syscall_hdlr:
 /*
 ** IDT handlers
 */
-.section        .idt_jmp, "ax", @progbits
 
+.align 16
 idt_trampoline:
 /* divide error (no) */
     .align  16

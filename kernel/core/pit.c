@@ -1,7 +1,7 @@
 #include <pit.h>
 #include <io.h>
 
-static uint64_t started_time = 0;
+static uint64_t __attribute__((section(".userland_shared_data"))) started_time = 0;
 static bool_t initialized = false;
 
 // up to 255 waiters
@@ -74,10 +74,10 @@ void time_incr() {
     }
 }
 
-uint64_t get_time_ms() {
+uint64_t __attribute__((section(".userland_shared_code"))) get_time_ms() {
     return (double)started_time*get_precision_ms();
 }
 
-double get_precision_ms() {
+double __attribute__((section(".userland_shared_code"))) get_precision_ms() {
     return 4096/1.1931816666e3;
 }

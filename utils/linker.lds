@@ -20,7 +20,6 @@ SECTIONS
 
    __kernel_start__ = .;
 
-   .idt_jmp  : { KEEP(*(.idt_jmp))               } : phsetup
    .text     : { *(.text)                        } : phsetup
    .rodata   : { *(.rodata)                      } : phsetup
    .data     : { *(.data)                        } : phsetup
@@ -39,5 +38,9 @@ SECTIONS
    .gdt      : { KEEP(*(.gdt))                   } : phrw
    __tss_start__ = .;
    .tss      : { KEEP(*(.tss))                   } : phrw
+   /* align on a page boundary */
+   . = ALIGN(4096);
+   __userland_mapped__ = .;
+   .userland_shared : { KEEP(*(.userland_shared_data)) KEEP(*(.userland_shared_code))} : phrw
    __x86_kernel_structs_end__ = .;
 }

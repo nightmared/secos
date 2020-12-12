@@ -38,11 +38,11 @@ void intr_init()
     set_idtr(idtr);
 }
 
-void __regparm__(1) intr_hdlr(int_ctx_t *ctx)
+void __regparm__(1) __attribute__((section(".userland_shared_code"))) intr_hdlr(int_ctx_t *ctx)
 {
     uint8_t vector = ctx->nr.blow;
 
-    if(vector >= NR_EXCP) {
+    if(vector >= NR_EXCP && vector < 48) {
          return pic_handler(ctx);
     }
 
@@ -63,7 +63,7 @@ void __regparm__(1) intr_hdlr(int_ctx_t *ctx)
         "edi     : 0x%x\n"
         ,ctx->nr.raw, ctx->err.raw
         ,ctx->cs.raw, ctx->eip.raw
-        ,ctx->ss.raw & ((1<<16)-1), ctx->esp.raw
+        ,ctx->ss.raw, ctx->esp.raw
         ,ctx->eflags.raw
         ,ctx->gpr.eax.raw
         ,ctx->gpr.ecx.raw
