@@ -59,7 +59,9 @@ inline void __attribute__((always_inline)) update_tss(struct process *p) {
     asm volatile("ltr %%ax" :: "a"(gdt_seg_sel(gdt_tss_idx, 0)));
 }
 
-void __attribute__((section(".userland_shared_code"))) run_task(struct process *p) {
+void __attribute__((section(".userland_shared_code"))) __run_task(struct process *p) {
+    size_t (*print)(const char *format, ...) = printf;
+    (print)("called\n");
     update_tss(p);
     asm volatile(
         "mov %4, %%cr3 \n\t"
@@ -81,3 +83,9 @@ void __attribute__((section(".userland_shared_code"))) run_task(struct process *
         "r"(p->pdt)
     );
 }
+
+void run_task(struct process *p) {
+    // who doesn't like doing manual relocations ?
+    (0xc0000000-(uint32_t)&__userland_mapped__+__run_task)(p);
+}
+

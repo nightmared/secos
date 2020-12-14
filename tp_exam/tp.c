@@ -26,10 +26,11 @@ void tp() {
     printf("\nGDT description:\n");
     print_gdt();
 
+    // we need to enable paging prior to enabling interrupts because we rellocated the interrupt handlers at the shared memoery mapping at 0xc0000000
+    enable_paging();
+
     // enable interrupts
     asm volatile("sti");
-
-    enable_paging();
 
     print_pdt();
 
@@ -48,6 +49,5 @@ void tp() {
         debug("error: couldn't init a process\n");
     }
 
-    (0xc0000000-(uint32_t)&__userland_mapped__+run_task)(&proc1);
-    //run_task(&proc1);
+    run_task(&proc1);
 }

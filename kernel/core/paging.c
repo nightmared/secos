@@ -84,7 +84,7 @@ void setup_shared_pde(pte32_t* pt) {
 
     // we assume the shared data does not exced the size of a PDE (4MB)
     for (uint32_t i = 0; i < nb_pages; i++) {
-        (pt+i)->addr = base_addr+(i<<PG_4K_SHIFT);
+        (pt+i)->addr = (base_addr>>PG_4K_SHIFT)+i;
         (pt+i)->rw = 0;
         (pt+i)->p = 1;
         (pt+i)->lvl = 1;

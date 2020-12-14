@@ -10,14 +10,16 @@ extern info_t *info;
 extern void idt_trampoline();
 static int_desc_t IDT[IDT_NR_DESC];
 extern int asm_syscall_hdlr;
+extern int __userland_mapped__;
 
 void intr_init()
 {
     idt_reg_t idtr;
-    offset_t  isr;
     size_t    i;
 
-    isr = (offset_t)idt_trampoline;
+    // relocate handlers at 0xc0000000 so that they work in both useerland and kernelland
+    uint32_t isr = (0xc0000000-(uint32_t)&__userland_mapped__+(uint32_t)idt_trampoline);
+    uint32_t hdlr80 = (0xc0000000-(uint32_t)&__userland_mapped__+(uint32_t)&asm_syscall_hdlr);
 
     /* re-use default grub GDT code descriptor */
     for(i=0 ; i<IDT_NR_DESC ; i++, isr += IDT_ISR_ALGN) {
@@ -25,8 +27,8 @@ void intr_init()
     }
 
     // enable syscalls
-    IDT[0x80].offset_1 = (uint32_t)&asm_syscall_hdlr&((1<<16)-1);
-    IDT[0x80].offset_2 = (uint32_t)&asm_syscall_hdlr>>16;
+    IDT[0x80].offset_1 = hdlr80&((1<<16)-1);
+    IDT[0x80].offset_2 = hdlr80>>16;
     //IDT[0x80].type = SEG_DESC_SYS_CALL_GATE_32;
     IDT[0x80].dpl = 3;
 
@@ -38,8 +40,8 @@ void intr_init()
     set_idtr(idtr);
 }
 
-void __regparm__(1) __attribute__((section(".userland_shared_code"))) intr_hdlr(int_ctx_t *ctx)
-{
+void __regparm__(1) intr_hdlr(int_ctx_t *ctx) {
+    //printf("Hola from intr_hdlr\n");
     uint8_t vector = ctx->nr.blow;
 
     if(vector >= NR_EXCP && vector < 48) {

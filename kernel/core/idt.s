@@ -42,7 +42,9 @@ eoi_pic1:
 idt_common:
     pusha
     mov     %esp, %eax
-    call    intr_hdlr
+    // manual call, perform a near jump to an absolute adress, and not to a relative one, because the idt is relocated at 0xc0000000
+    mov     $intr_hdlr, %ebx
+    call    *%ebx
 
 resume_from_intr:
     popa
