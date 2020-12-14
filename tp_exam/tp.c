@@ -10,10 +10,9 @@
 #include <paging.h>
 #include <alloc.h>
 
-void userland() {
-    printf("test\n");
+void __attribute__((section(".userland_code"))) userland() {
     while (1) {
-        execute_syscall(4, 0, 1, 2, 3, 4);
+        userland_execute_syscall(4, 0, 1, 2, 3, 4);
         sleep(250);
     }
 }
@@ -32,7 +31,18 @@ void tp() {
     // enable interrupts
     asm volatile("sti");
 
-    print_pdt();
+   // now that the mapping at 0xc0000000 is on, update the gdtr to point to this region so that the gdt and the tss stay valid when running in user tasks
+    mygdt = (seg_desc_t*)(0xc0000000+(uint32_t)&__gdt_start__-(uint32_t)&__userland_mapped__);
+    update_gdtr();
+    uint32_t new_tss_addr = 0xc0000000+(uint32_t)&__tss_start__-(uint32_t)&__userland_mapped__;
+    init_segment(&mygdt[gdt_tss_idx], new_tss_addr, new_tss_addr+sizeof(tss_t));
+    mygdt[gdt_tss_idx].d = 0;
+    mygdt[gdt_tss_idx].g = 0;
+    mygdt[gdt_tss_idx].s = 0; // system kind
+    mygdt[gdt_tss_idx].type = SEG_DESC_SYS_TSS_AVL_32;
+    mygdt[gdt_tss_idx].dpl = 3;
+
+    print_pdt(pdt);
 
     // init the kernel TSS
     tss_t *kernel_tss = (tss_t*)&__tss_start__;
@@ -44,10 +54,26 @@ void tp() {
     struct process proc1 = {0}, proc2 = {0};
     if (!init_process(&proc1, userland)) {
         debug("error: couldn't init a process\n");
+        return;
     }
     if (!init_process(&proc2, userland)) {
         debug("error: couldn't init a process\n");
+        return;
     }
+
+    //print_pdt(proc1.pdt);
+    //print_pt((pte32_t*)((proc1.pdt+1)->addr<<12));
+    //print_pt((pte32_t*)((proc1.pdt+2)->addr<<12));
+    printf("%p\n", &__gdt_start__);
+
+
+    // alloc a shared memory region
+    void* shared_region = process_alloc_contiguous_pages(&proc1, 0x200000, 1, MEM_SHARED);
+    if (shared_region == NULL) {
+        debug("error: cannot init a shared region\n");
+        return;
+    }
+
 
     run_task(&proc1);
 }

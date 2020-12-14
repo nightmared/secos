@@ -7,6 +7,11 @@ void* alloc_contiguous_pages(uint32_t nb_pages) {
         uint32_t base_addr = (uint32_t)available_mem_regions[cur_mem_region].base_ptr;
         uint32_t region_len_pages = available_mem_regions[cur_mem_region].nb_4k_pages;
 
+        // skip the first 4k pages to prevent conflicts with the NULL pointer
+        if (base_addr == 0) {
+            base_addr += PG_4K_SIZE;
+        }
+
         // it is useless to scan a memory region when it is too small to hold the allocation
         if (nb_pages > region_len_pages) {
             continue;
@@ -119,7 +124,7 @@ void* process_alloc_contiguous_pages(struct process *p, uint32_t virt_addr, uint
 
     uint32_t phy_allocated_addr = (uint32_t)alloc_contiguous_pages(nb_pages);
     if (phy_allocated_addr == 0) {
-        debug("process_alloc_contiguous_pages: couldn't allocate %d pages\n", nb_pages);
+        debug("process_alloc_contiguous_pages: couldn't allocate %d page(s)\n", nb_pages);
         return NULL;
     }
 
@@ -170,6 +175,7 @@ bool_t process_add_shared_mem_region(struct process *p, uint32_t virt_addr, uint
 
     if (!map_contiguous_pages_in_process(p, virt_addr, nb_pages, phys_addr)) {
         debug("map_contiguous_pages_in_process: couldn't map the pages\n");
+        p->allocs->size--;
 
         return false;
     }
@@ -178,13 +184,13 @@ bool_t process_add_shared_mem_region(struct process *p, uint32_t virt_addr, uint
 }
 
 // allocate a kernel PDE per process (4M):
-// 0: PTT that describes this very struct ;)
-// 1: interrupt description context (save esp, ss and register state for context switching)
-// 2: PDTs
-// 3: process_allocs (auxiliary allocations done for the process + memory shared with other processes (and thus reference-counted))
-// 4: guard page
-// 5: 4K kernel stack
-// 6-510: unused, reserved for a possible future extension of the kernelland stack of up to 2M (minus 6 4K pages)
+// 0-1: PTTs that describes this very struct ;)
+// 2: interrupt description context (save esp, ss and register state for context switching)
+// 3: PDTs
+// 4: process_allocs (auxiliary allocations done for the process + memory shared with other processes (and thus reference-counted))
+// 5: guard page
+// 6: 4K kernel stack
+// 7-510: unused, reserved for a possible future extension of the kernelland stack of up to 2M (minus 6 4K pages)
 // 511: PTT that describe the kernel shared mapping
 // 512: guard page
 // 513: 4K user stack
@@ -192,54 +198,56 @@ bool_t process_add_shared_mem_region(struct process *p, uint32_t virt_addr, uint
 void* init_process_memory(struct process *p) {
     void *kernel_addr = alloc_contiguous_pages(PG_4M_SIZE>>PG_4K_SHIFT);
     if (kernel_addr == NULL) {
-        debug("init_process: could not allocate a PDE for the process\n");
+        debug("init_process: couldn't allocate a PDE for the process\n");
 
         return NULL;
     }
 
     p->process_memory = kernel_addr;
+    p->pdt = (pde32_t*)((uint32_t)kernel_addr+(3<<PG_4K_SHIFT));
+    p->allocs = (struct process_allocs*)((uint32_t)kernel_addr+(4<<PG_4K_SHIFT));
+    p->allocs->cr3 = p->pdt;
+    p->context = (int_ctx_t*)((uint32_t)kernel_addr+(2<<PG_4K_SHIFT));
+    p->kernelland_stack = (void*)((uint32_t)kernel_addr+(6<<PG_4K_SHIFT));
+    p->userland_stack = (void*)((uint32_t)kernel_addr+(513<<PG_4K_SHIFT));
 
     memset(kernel_addr, 0, PG_4M_SIZE);
 
-    pte32_t *pte = (pte32_t*)kernel_addr;
+    // <3 identity mapping
+    uint32_t cur_addr = (uint32_t)kernel_addr;
     for (int i = 0; i < 1024; i++) {
-        (pte+i)->addr = ((uint32_t)kernel_addr>>PG_4K_SHIFT)+i;
-        (pte+i)->rw = 1;
+        if ((p->pdt+pd32_idx(cur_addr))->p == 0) {
+            (p->pdt+pd32_idx(cur_addr))->p = 1;
+            (p->pdt+pd32_idx(cur_addr))->lvl = 1;
+            (p->pdt+pd32_idx(cur_addr))->rw = 1;
+            // black magic to select the correct PT address
+            (p->pdt+pd32_idx(cur_addr))->addr = ((uint32_t)kernel_addr>>PG_4K_SHIFT)+(pd32_idx(cur_addr)&1);
+        }
+
+        pte32_t *pte = get_pte_for_addr(p->pdt, cur_addr);
+        pte->addr = ((uint32_t)kernel_addr>>PG_4K_SHIFT)+i;
+        pte->rw = 1;
 
         if (i < 512) {
-            (pte+i)->lvl = 0;
+            pte->lvl = 0;
         } else {
-            (pte+i)->lvl = 1;
+            pte->lvl = 1;
         }
 
-        if (i < 4 || i == 5 || i == 511 || i == 513) {
+        if (i <= 3 || i == 5 || i == 511 || i == 513) {
             pte->p = 1;
         }
-    }
 
-    p->pdt = (pde32_t*)((uint32_t)kernel_addr+(2<<PG_4K_SHIFT));
-    // identity-map the task
-    (p->pdt+pd32_idx(kernel_addr))->p = 1;
-    (p->pdt+pd32_idx(kernel_addr))->lvl = 1;
-    (p->pdt+pd32_idx(kernel_addr))->rw = 1;
-    (p->pdt+pd32_idx(kernel_addr))->addr = (uint32_t)kernel_addr>>PG_4K_SHIFT;
+        cur_addr += PG_4K_SIZE;
+    }
 
     // map the kernel shared memory read-only
     pte32_t *shared_pt = (pte32_t*)((uint32_t)kernel_addr+(511<<PG_4K_SHIFT));
-
     (p->pdt+pd32_idx(0xc0000000))->p = 1;
     (p->pdt+pd32_idx(0xc0000000))->lvl = 1;
     (p->pdt+pd32_idx(0xc0000000))->rw = 0;
     (p->pdt+pd32_idx(0xc0000000))->addr = (uint32_t)shared_pt>>PG_4K_SHIFT;
-
     setup_shared_pde(shared_pt);
-
-    p->allocs = (struct process_allocs*)((uint32_t)kernel_addr+(3<<PG_4K_SHIFT));
-    p->allocs->cr3 = pdt;
-
-    p->kernelland_stack = (void*)((uint32_t)kernel_addr+(5<<PG_4K_SHIFT));
-    p->userland_stack = (void*)((uint32_t)kernel_addr+(513<<PG_4K_SHIFT));
-    p->context = (int_ctx_t*)((uint32_t)kernel_addr+(1<<PG_4K_SHIFT));
 
     return kernel_addr;
 }
@@ -334,7 +342,7 @@ struct elem_entry* find_elem_before_free(struct elem_entry *heap, uint32_t neede
     while (cur != NULL && cur->next_entry != NULL) {
         uint32_t distance_data_size = (char*)cur->next_entry - ((char*)cur + cur->size + sizeof(struct elem_entry));
 
-        if (needed_size > distance_data_size) {
+        if (distance_data_size > needed_size) {
             return cur;
         }
 

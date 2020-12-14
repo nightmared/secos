@@ -28,19 +28,23 @@ SECTIONS
    
    __kernel_end__ = .;
 
+   __userland_start__ = .;
+   .userland : { KEEP(*(.userland_code)) KEEP(*(.userland_data)) } : phrw
+   __userland_end__ = .;
+
    . = 0x200000;
    __x86_kernel_structs_start__ = .;
    __pdt_start__ = .;
    .pdt      : { KEEP(*(.pdt))                   } : phrw
    __pt_start__ = .;
    .pt       : { KEEP(*(.pt))                    } : phrw
+   /* align on a page boundary */
+   . = ALIGN(4096);
+   __userland_mapped__ = .;
    __gdt_start__ = .;
    .gdt      : { KEEP(*(.gdt))                   } : phrw
    __tss_start__ = .;
    .tss      : { KEEP(*(.tss))                   } : phrw
-   /* align on a page boundary */
-   . = ALIGN(4096);
-   __userland_mapped__ = .;
    .userland_shared : { KEEP(*(.userland_shared_data)) KEEP(*(.userland_shared_code))} : phrw
    __x86_kernel_structs_end__ = .;
 }

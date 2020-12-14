@@ -8,19 +8,19 @@ pte32_t *pt = (pte32_t*)&__pt_start__;
 struct mbi_available_memory available_mem_regions[4];
 uint8_t nb_available_mem_regions = 4;
 
-void print_pde(uint16_t idx) {
-    if (idx >= 1024) {
-        printf("invalid PDT query: %d index too high\n", idx);
+void print_pt(pte32_t *pt) {
+    printf("\nPT description:\n");
+    for (int i = 0; i < 1024; i++) {
+        printf("%d: %08p (user: %d, present: %d, writable: %d)\n", i, (pt+i)->addr<<12, (pt+i)->lvl, (pt+i)->p, (pt+i)->rw);
     }
-
-    pde32_t *pde = pdt+idx;
-    printf("%d: %p (user: %d, present: %d, writable: %d)\n", idx, pde->addr<<12, pde->lvl, pde->p, pde->rw);
 }
 
-void print_pdt() {
+void print_pdt(pde32_t *pdt) {
+    printf("%p\n", pdt);
     printf("\nPDT description:\n");
     for (int i = 0; i < 1024; i++) {
-        print_pde(i);
+        pde32_t* pde = pdt+i;
+        printf("%d: %08p (user: %d, present: %d, writable: %d)\n", i, pde->addr<<12, pde->lvl, pde->p, pde->rw);
     }
 }
 

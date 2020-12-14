@@ -17,8 +17,8 @@ pte32_t *get_pte_for_addr(pde32_t *cr3, uint32_t addr);
 // map kernel shared memory, used by the kernel and processes alike
 void setup_shared_pde(pte32_t* pt);
 
-void print_pdt();
-void print_pde(uint16_t idx);
+void print_pdt(pde32_t* pdt);
+void print_pt(pte32_t *pt);
 
 
 #endif // __PAGING_H__

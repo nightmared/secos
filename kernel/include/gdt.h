@@ -9,6 +9,7 @@
 
 // theses objects are (they do not point !) at the start of the respective gdt and tss
 extern int __gdt_start__, __tss_start__;
+extern seg_desc_t *mygdt;
 extern uint16_t gdt_size, gdt_code_idx, gdt_data_idx, gdt_tss_idx;
 
 void print_gdt();
