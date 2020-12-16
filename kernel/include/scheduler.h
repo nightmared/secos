@@ -13,5 +13,6 @@ void prepare_scheduler(void);
 struct process *init_process(void* fun);
 
 void run_task(struct process *p);
+void switch_to_next_task(struct process *p, int_ctx_t *ctx);
 
 #endif // __SCHEDULER_H__

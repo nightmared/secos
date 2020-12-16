@@ -1,4 +1,5 @@
 #include <scheduler.h>
+#include <syscall.h>
 #include <segmem.h>
 #include <alloc.h>
 #include <gdt.h>
@@ -64,19 +65,30 @@ inline void __attribute__((always_inline)) __attribute__((section(".userland_sha
     //asm volatile("mov %%esp, %0" : "=m"(esp0));
     //kernel_tss->s0.esp = esp0;
     //TODO: fix this ?
+
+    // size_t (*print)(const char *format, ...) = printf;
     kernel_tss->s0.esp = (uint32_t)p->kernelland_stack+PG_4K_SIZE;
+    // say that the tss is available and not busy (useful for switching from a task to another)
+    mygdt[gdt_tss_idx].type = SEG_DESC_SYS_TSS_AVL_32;
     asm volatile("ltr %%ax" :: "a"(gdt_seg_sel(gdt_tss_idx, 0)));
 }
 
 void __attribute__((section(".userland_shared_code"))) __run_task(struct process *p) {
+    current_process = p;
     update_tss(p);
+
+    // recopy the context of the process to prepare the return
+    p->context->esp.raw -= sizeof(gpr_ctx_t)+4;
+    void* (*mcpy)(void*, void*, size_t) = memcpy;
+    mcpy((void*)p->context->esp.raw, &p->context->gpr, sizeof(gpr_ctx_t));
+    mcpy((void*)(p->context->esp.raw+sizeof(gpr_ctx_t)), &p->context->eip.raw, sizeof(uint32_t));
+
     // size_t (*print)(const char *format, ...) = printf;
     // (print)("called\n");
     // (print)("%p\n", p->context->esp.raw);
     // (print)("%p\n", p->context->eip.raw);
     // (print)("%p\n", p->context->cs.raw);
     // (print)("%p\n", p->context->ss.raw);
-    // // switch to the userland stack to do the iret (other stacks are either not accessible or ampped as read-only)
     asm volatile(
         "mov %3, %%ds \n\t"
         "mov %3, %%es \n\t"
@@ -91,7 +103,7 @@ void __attribute__((section(".userland_shared_code"))) __run_task(struct process
         "mov %4, %%cr3 \n\t"
         "iret"
         ::
-        "r"(p->context->eip.raw),
+        "r"(userland_return_from_syscall),
         "r"(p->context->cs.raw),
         "r"(p->context->esp.raw),
         "r"(p->context->ss.raw),
@@ -104,3 +116,24 @@ void run_task(struct process *p) {
     (0xc0000000-(uint32_t)&__userland_mapped__+__run_task)(p);
 }
 
+void switch_to_next_task(struct process *p, int_ctx_t *ctx) {
+    // save the context of the old running process
+    memcpy(p->context, ctx, sizeof(int_ctx_t));
+
+
+    struct elem_entry *p_holder = (struct elem_entry*)((uint32_t)p-sizeof(struct elem_entry));
+    struct elem_entry *list = p_holder->next_entry;
+    if (list->next_entry != NULL) {
+        struct process *np = (struct process*)((uint32_t)list+sizeof(struct elem_entry));
+        printf("switching\n");
+        run_task(np);
+    } else {
+        // restart at the beginning of the list
+        while (list->previous_entry->previous_entry != NULL) {
+            list = list->previous_entry;
+        }
+        struct process *np = (struct process*)((uint32_t)list+sizeof(struct elem_entry));
+        run_task(np);
+    }
+    // TODO: handle the case where there is no longer any process in the list
+}

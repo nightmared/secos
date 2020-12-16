@@ -23,6 +23,7 @@ void __attribute__((section(".userland_code"))) task1() {
 
 void __attribute__((section(".userland_code"))) task2() {
     while (1) {
+        userland_execute_syscall(2, SYSCALL_PRINTF, (uint32_t)show_int, 15);
         //userland_execute_syscall(4, 0, 1, 2, 3, 4);
         //sleep(250);
     }

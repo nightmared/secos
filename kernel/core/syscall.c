@@ -1,9 +1,17 @@
 #include <syscall.h>
+#include <scheduler.h>
 #include <debug.h>
 
 extern int __x86_kernel_structs_end__, __x86_kernel_structs_start__, __userland_mapped__, __kernel_end__;
 
 #define IN_KERNEL(x) ((x >= (uint32_t)&__x86_kernel_structs_start__ && x < (uint32_t)&__x86_kernel_structs_end__) || (x >= 0x100000 && x < (uint32_t)&__kernel_end__) || (x >= 0xc0000000 && x < (uint32_t)&__x86_kernel_structs_end__+0xc0000000-(uint32_t)&__userland_mapped__))
+
+void __attribute__((section(".userland_code"))) __attribute__((naked)) userland_return_from_syscall() {
+    asm volatile(
+            "popa \n\t"
+            "ret"
+            ::);
+}
 
 void __attribute__((section(".userland_code"))) userland_execute_syscall(uint8_t nb_args, uint32_t syscall_number, ...) {
     uint32_t eax, ebx, ecx, edx, esi;
@@ -60,8 +68,9 @@ void __regparm__(1) kernel_syscall(int_ctx_t *ctx) {
 
             break;
         default:
-            // TODO: show current task id
-            debug("Unsupported syscall %d\n", syscall_nb);
+            debug("Unsupported syscall %d from task %d\n", syscall_nb, current_process->task_id);
     }
+
+    switch_to_next_task(current_process, ctx);
 }
 
