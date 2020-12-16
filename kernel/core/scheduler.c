@@ -8,6 +8,8 @@ struct elem_entry *process_list_heap;
 struct page process_shared_info[2];
 struct elem_entry *process_shared_info_heap;
 
+struct process *current_process;
+
 void prepare_scheduler(void) {
     process_list_heap = create_heap(4, process_list_reserved_memory);
     if (process_list_heap == NULL) {
@@ -22,7 +24,7 @@ void prepare_scheduler(void) {
     }
 }
 
-bool_t init_process(struct process *out_process, void* fun) {
+struct process *init_process(void* fun) {
     // get an unused task id
     uint16_t min = 1;
     struct elem_entry *list = process_list_heap->next_entry;
@@ -34,11 +36,18 @@ bool_t init_process(struct process *out_process, void* fun) {
 
         list = list->next_entry;
     }
+
+    struct process *out_process = kmalloc(process_list_heap, sizeof(struct process));
+    if (out_process == NULL) {
+        debug("init_process: allocating an entry in the process_list heap failed\n");
+        return NULL;
+    }
     out_process->task_id = min;
+
 
     if (init_process_memory(out_process) == NULL) {
         debug("init_process: couldn't allocate memory for the process\n");
-        return false;
+        return NULL;
     }
 
     out_process->context->eip.raw = (uint32_t)fun;
@@ -46,7 +55,7 @@ bool_t init_process(struct process *out_process, void* fun) {
     out_process->context->cs.raw = gdt_seg_sel(gdt_code_idx+GDT_RING3_OFFSET, 3);
     out_process->context->ss.raw = gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3);
 
-    return true;
+    return out_process;
 }
 
 inline void __attribute__((always_inline)) __attribute__((section(".userland_shared_code"))) update_tss(struct process *p) {

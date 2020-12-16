@@ -34,7 +34,9 @@ struct process_allocs {
 
 void* alloc_contiguous_pages(uint32_t nb_pages);
 void free_contiguous_pages(pde32_t *cr3, uint32_t start, uint32_t end);
+bool_t map_contiguous_pages_in_process(struct process *p, uint32_t virt_addr, uint32_t nb_pages, uint32_t phys_addr);
 void* init_process_memory(struct process *p);
+void process_list_allocations(struct process *p);
 void* process_alloc_contiguous_pages(struct process *p, uint32_t virt_addr, uint32_t nb_pages, uint8_t type);
 bool_t process_add_shared_mem_region(struct process *p, uint32_t virt_addr, uint32_t phys_addr, struct phys_mem_shared_region *metadata, uint32_t nb_pages);
 void free_process_allocs(struct process *p);

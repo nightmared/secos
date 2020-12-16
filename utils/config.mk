@@ -58,10 +58,10 @@ TARGET     := kernel.elf
 QEMU := $(shell which qemu-system-i386)
 #QEMU := $(shell which qemu-system-i386) -enable-kvm 
 #QEMU := $(shell which kvm)
-QFDA := -drive media=disk,format=raw,if=ide,index=0,file=../utils/grub2
+QFDA := -drive media=disk,format=raw,if=floppy,index=0,file=../utils/grub.floppy
 QHDD := -drive media=disk,format=raw,if=ide,index=1,file=fat:rw:.
 QSRL := -serial mon:stdio
-QDBG := -d mmu,int,pcall,cpu_reset,unimp,guest_errors,in_asm -D /tmp/qemu.log 
+#QDBG := -d mmu,int,pcall,cpu_reset,unimp,guest_errors,in_asm -D /tmp/qemu.log
 QOPT := $(QFDA) $(QHDD) $(QSRL) $(QDBG) -machine q35 -boot a -nographic -no-reboot
 
 ifneq ($(findstring "kvm",$(QEMU)),)

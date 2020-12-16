@@ -75,19 +75,6 @@ resume_no_cr3_reload:
     add     $8, %esp
     iret
 
-// syscall handler
-//asm_syscall_hdlr:
-//    pusha
-//    // TODO
-//    mov     $0xc0000000, %eax
-//    sub     $__userland_mapped__, %eax
-//    add     $__pdt_start__, %eax
-//    mov     %eax, %cr3
-//    mov     %esp, %eax
-//    call    kernel_syscall
-//    popa
-//    iret
-
 /*
 ** IDT handlers
 */

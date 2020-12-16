@@ -1,6 +1,10 @@
 #include <syscall.h>
 #include <debug.h>
 
+extern int __x86_kernel_structs_end__, __x86_kernel_structs_start__, __userland_mapped__, __kernel_end__;
+
+#define IN_KERNEL(x) ((x >= (uint32_t)&__x86_kernel_structs_start__ && x < (uint32_t)&__x86_kernel_structs_end__) || (x >= 0x100000 && x < (uint32_t)&__kernel_end__) || (x >= 0xc0000000 && x < (uint32_t)&__x86_kernel_structs_end__+0xc0000000-(uint32_t)&__userland_mapped__))
+
 void __attribute__((section(".userland_code"))) userland_execute_syscall(uint8_t nb_args, uint32_t syscall_number, ...) {
     uint32_t eax, ebx, ecx, edx, esi;
     va_list params;
@@ -35,10 +39,29 @@ void __attribute__((section(".userland_code"))) userland_execute_syscall(uint8_t
 }
 
 void __regparm__(1) kernel_syscall(int_ctx_t *ctx) {
-    debug("eax: %p\n", ctx->gpr.eax.raw);
-    printf("ebx: %p\n", ctx->gpr.ebx.raw);
-    printf("ecx: %p\n", ctx->gpr.ecx.raw);
-    printf("edx: %p\n", ctx->gpr.edx.raw);
-    printf("esi: %p\n", ctx->gpr.esi.raw);
+    uint32_t syscall_nb = ctx->gpr.eax.raw;
+    uint32_t __attribute__((unused)) arg2 = ctx->gpr.ebx.raw;
+    uint32_t __attribute__((unused)) arg3 = ctx->gpr.ecx.raw;
+    uint32_t __attribute__((unused)) arg4 = ctx->gpr.edx.raw;
+    uint32_t __attribute__((unused)) arg5 = ctx->gpr.esi.raw;
+
+    switch (syscall_nb) {
+        case SYSCALL_EXIT:
+            //TODO
+            break;
+
+        case SYSCALL_PRINTF:
+            // Beware, not enought security checks here
+            if (IN_KERNEL(arg2)) {
+                debug("Trying to access kernel memory in a syscall\n");
+                return;
+            }
+            printf((char*)arg2, arg3, arg4, arg5);
+
+            break;
+        default:
+            // TODO: show current task id
+            debug("Unsupported syscall %d\n", syscall_nb);
+    }
 }
 

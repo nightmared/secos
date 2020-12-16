@@ -7,8 +7,10 @@
 extern struct elem_entry *process_list_heap;
 extern struct elem_entry *process_shared_info_heap;
 
+extern struct process *current_process;
+
 void prepare_scheduler(void);
-bool_t init_process(struct process *out_process, void* fun);
+struct process *init_process(void* fun);
 
 void run_task(struct process *p);
 

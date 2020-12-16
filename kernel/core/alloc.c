@@ -179,6 +179,8 @@ bool_t process_add_shared_mem_region(struct process *p, uint32_t virt_addr, uint
     info->type = MEM_SHARED;
     info->shared_info = metadata;
 
+    info->shared_info->nb_owners++;
+
     if (!map_contiguous_pages_in_process(p, virt_addr, nb_pages, phys_addr)) {
         debug("map_contiguous_pages_in_process: couldn't map the pages\n");
         p->allocs->size--;
@@ -305,6 +307,23 @@ void free_contiguous_pages(pde32_t *cr3, uint32_t start, uint32_t end) {
     }
 }
 
+void process_list_allocations(struct process *p) {
+    printf("Process allocations list for task #%d:\n", p->task_id);
+    for (uint32_t i = 0; i < p->allocs->size; i++) {
+        struct vmem_contiguous_alloc *alloc = p->allocs->allocated_vmem_pages + i;
+        switch (alloc->type) {
+        case MEM_PRIVATE:
+            printf("%8p - %8p (private)\n", alloc->start, alloc->end);
+            break;
+        case MEM_SHARED:
+            printf("%8p - %8p (shared over %d tasks)\n", alloc->start, alloc->end, alloc->shared_info->nb_owners);
+            break;
+        default:
+            debug("process_list_allocations: invalid allocation type %p\n", alloc->type);
+        }
+    }
+}
+
 // we only support contiguous pages for simplicity
 void free_process_allocs(struct process *p) {
     for (uint32_t i = 0; i < p->allocs->size; i++) {
@@ -339,8 +358,8 @@ void free_process_memory(struct process *p) {
 // -----------------------------------------------------------------------------------------------
 // Warning: first_entry and last_entry must not be freed ! (but we protect against this anyway)
 struct elem_entry* create_heap(uint32_t nb_pages, struct page p[nb_pages]) {
-    struct elem_entry* first_entry = (struct elem_entry*)p->elems;
-    struct elem_entry* last_entry = (struct elem_entry*)&(p->elems+(nb_pages-1))[sizeof(struct page)-sizeof(struct elem_entry)];
+    struct elem_entry* first_entry = (struct elem_entry*)p;
+    struct elem_entry* last_entry = (struct elem_entry*)((uint32_t)(p+nb_pages-1)+sizeof(struct page)-sizeof(struct elem_entry));
     first_entry->previous_entry = NULL;
     first_entry->next_entry = last_entry;
     first_entry->size = 0;
@@ -356,9 +375,9 @@ struct elem_entry* find_elem_before_free(struct elem_entry *heap, uint32_t neede
     struct elem_entry *cur = heap;
 
     while (cur != NULL && cur->next_entry != NULL) {
-        uint32_t distance_data_size = (char*)cur->next_entry - ((char*)cur + cur->size + sizeof(struct elem_entry));
+        uint32_t distance_data_size = (uint32_t)cur->next_entry - ((uint32_t)cur + cur->size + sizeof(struct elem_entry));
 
-        if (distance_data_size > needed_size) {
+        if (distance_data_size >= sizeof(struct elem_entry) + needed_size) {
             return cur;
         }
 
@@ -375,14 +394,14 @@ void* kmalloc(struct elem_entry* heap, uint32_t size) {
         return NULL;
     }
 
-    struct elem_entry* new_alloc = (struct elem_entry*)((char*)entry + entry->size + sizeof(struct elem_entry));
+    struct elem_entry* new_alloc = (struct elem_entry*)((uint32_t)entry + entry->size + sizeof(struct elem_entry));
     new_alloc->previous_entry = entry;
     new_alloc->next_entry = entry->next_entry;
     new_alloc->previous_entry->next_entry = new_alloc;
     new_alloc->next_entry->previous_entry = new_alloc;
     new_alloc->size = size;
 
-    return new_alloc;
+    return (void*)((uint32_t)new_alloc + sizeof(struct elem_entry));
 }
 
 void kfree(struct elem_entry* heap, void *ptr) {
