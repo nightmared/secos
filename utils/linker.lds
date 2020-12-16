@@ -37,15 +37,23 @@ SECTIONS
    __x86_kernel_structs_start__ = .;
    __pdt_start__ = .;
    .pdt      : { KEEP(*(.pdt))                   } : phrw
+   __pdt_end__ = .;
    __pt_start__ = .;
    .pt       : { KEEP(*(.pt))                    } : phrw
+   __pt_end__ = .;
+
    /* align on a page boundary */
    . = ALIGN(4096);
    __userland_mapped__ = .;
    __gdt_start__ = .;
    .gdt      : { KEEP(*(.gdt))                   } : phrw
+   __gdt_end__ = .;
+   __idt_start__ = .;
+   .idt      : { KEEP(*(.idt))                   } : phrw
+   __idt_end__ = .;
    __tss_start__ = .;
    .tss      : { KEEP(*(.tss))                   } : phrw
+   __tss_end__ = .;
    .userland_shared : { KEEP(*(.userland_shared_data)) KEEP(*(.userland_shared_code))} : phrw
    __x86_kernel_structs_end__ = .;
 }

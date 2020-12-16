@@ -15,6 +15,11 @@
 .align 0x1000
 .space 0x1000
 
+.section .idt, "aw", @nobits
+.align 0x1000
+// we only need half, but it's good for alignment anyway ;)
+.space 0x1000
+
 .section .pt, "aw", @nobits
 .align 0x1000
 .space 0x400000

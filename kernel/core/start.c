@@ -23,8 +23,6 @@ void __attribute__((regparm(1))) start(mbi_t *mbi)
 
     pic_init();
     uart_init();
-    intr_init();
-    pit_init();
     printf("\n" RELEASE " (c) Airbus\n");
 
     tp();

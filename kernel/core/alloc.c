@@ -240,7 +240,7 @@ void* init_process_memory(struct process *p) {
             pte->lvl = 1;
         }
 
-        if (i <= 3 || i == 5 || i == 511 || i == 513) {
+        if (i <= 4 || i == 6 || i == 511 || i == 513) {
             pte->p = 1;
         }
 

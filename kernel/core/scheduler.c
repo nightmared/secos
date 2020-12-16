@@ -49,7 +49,7 @@ bool_t init_process(struct process *out_process, void* fun) {
     return true;
 }
 
-inline void __attribute__((always_inline)) update_tss(struct process *p) {
+inline void __attribute__((always_inline)) __attribute__((section(".userland_shared_code"))) update_tss(struct process *p) {
     tss_t *kernel_tss = (tss_t*)&__tss_start__;
     //uint32_t esp0 = 0;
     //asm volatile("mov %%esp, %0" : "=m"(esp0));

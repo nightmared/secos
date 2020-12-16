@@ -12,6 +12,8 @@
 
 void __attribute__((section(".userland_code"))) userland() {
     while (1) {
+    }
+    while (1) {
         userland_execute_syscall(4, 0, 1, 2, 3, 4);
         sleep(250);
     }
@@ -25,10 +27,12 @@ void tp() {
     printf("\nGDT description:\n");
     print_gdt();
 
-    // we need to enable paging prior to enabling interrupts because we rellocated the interrupt handlers at the shared memoery mapping at 0xc0000000
+    // we need to configure paging prior to enabling interrupts because we rellocated the interrupt handlers to the shared memory mapping located at 0xc0000000
     enable_paging();
 
     // enable interrupts
+    intr_init();
+    pit_init();
     asm volatile("sti");
 
    // now that the mapping at 0xc0000000 is on, update the gdtr to point to this region so that the gdt and the tss stay valid when running in user tasks

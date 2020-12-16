@@ -41,25 +41,52 @@ eoi_pic1:
 */
 idt_common:
     pusha
+    // reload cr3 if necessary
+    mov     %cr3, %ecx
+    push    %ecx
+    mov     $__pdt_start__, %ebx
+    cmp     %ebx, %ecx
+    je      idt_no_cr3_reload
+    mov     %ebx, %cr3
+idt_no_cr3_reload:
+    // jump to the correct position in kernel memory, we no longer need to do weird relocations manually (nor at all)
+    mov     $jump_to_phys_addr, %ebx
+    jmp     *%ebx
+jump_to_phys_addr:
     mov     %esp, %eax
-    // manual call, perform a near jump to an absolute adress, and not to a relative one, because the idt is relocated at 0xc0000000
-    mov     $intr_hdlr, %ebx
-    call    *%ebx
+    add     $4, %eax
+    call    intr_hdlr
 
 resume_from_intr:
+    // jump back to "high" addresses
+    mov     $0xc0000000, %eax
+    sub     $__userland_mapped__, %eax
+    add     $resume_high_address, %eax
+    jmp     *%eax
+resume_high_address:
+    // restore cr3 if necessary
+    mov     %cr3, %ecx
+    pop     %ebx
+    cmp     %ebx, %ecx
+    je      resume_no_cr3_reload
+    mov     %ebx, %cr3
+resume_no_cr3_reload:
     popa
     add     $8, %esp
     iret
 
 // syscall handler
-asm_syscall_hdlr:
-    pusha
-    // TODO: update cr3 here
-    //mov __pdt_start__, %cr3
-    mov %esp, %eax
-    call kernel_syscall
-    popa
-    iret
+//asm_syscall_hdlr:
+//    pusha
+//    // TODO
+//    mov     $0xc0000000, %eax
+//    sub     $__userland_mapped__, %eax
+//    add     $__pdt_start__, %eax
+//    mov     %eax, %cr3
+//    mov     %esp, %eax
+//    call    kernel_syscall
+//    popa
+//    iret
 
 /*
 ** IDT handlers

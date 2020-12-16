@@ -3,40 +3,32 @@
 #include <pic.h>
 #include <gdt.h>
 #include <debug.h>
-#include <info.h>
 #include <io.h>
+#include <syscall.h>
 
-extern info_t *info;
 extern void idt_trampoline();
-static int_desc_t IDT[IDT_NR_DESC];
-extern int asm_syscall_hdlr;
-extern int __userland_mapped__;
+extern int __userland_mapped__, __idt_start__;
 
-void intr_init()
-{
-    idt_reg_t idtr;
-    size_t    i;
-
+void intr_init() {
     // relocate handlers at 0xc0000000 so that they work in both useerland and kernelland
+    int_desc_t *IDT = (int_desc_t*)(0xc0000000-(uint32_t)&__userland_mapped__+(uint32_t)&__idt_start__);
     uint32_t isr = (0xc0000000-(uint32_t)&__userland_mapped__+(uint32_t)idt_trampoline);
-    uint32_t hdlr80 = (0xc0000000-(uint32_t)&__userland_mapped__+(uint32_t)&asm_syscall_hdlr);
 
     /* re-use default grub GDT code descriptor */
-    for(i=0 ; i<IDT_NR_DESC ; i++, isr += IDT_ISR_ALGN) {
-        int_desc(&IDT[i], gdt_krn_seg_sel(gdt_code_idx), isr);
+    for(size_t i=0 ; i<IDT_NR_DESC ; i++, isr += IDT_ISR_ALGN) {
+        int_desc(IDT+i, gdt_krn_seg_sel(gdt_code_idx), isr);
     }
 
-    // enable syscalls
-    IDT[0x80].offset_1 = hdlr80&((1<<16)-1);
-    IDT[0x80].offset_2 = hdlr80>>16;
-    //IDT[0x80].type = SEG_DESC_SYS_CALL_GATE_32;
-    IDT[0x80].dpl = 3;
+    // configure the syscall handler at 0x80
+    (IDT+0x80)->dpl = 3;
 
     //// Allow userland to raise #BP exceptions
     //IDT[3].dpl = 3;
 
-    idtr.desc  = IDT;
-    idtr.limit = sizeof(IDT) - 1;
+    idt_reg_t idtr = {
+        .desc = IDT,
+        .limit = IDT_NR_DESC * sizeof(int_desc_t) - 1
+    };
     set_idtr(idtr);
 }
 
@@ -46,6 +38,10 @@ void __regparm__(1) intr_hdlr(int_ctx_t *ctx) {
 
     if(vector >= NR_EXCP && vector < 48) {
          return pic_handler(ctx);
+    }
+
+    if (vector == 0x80) {
+        return kernel_syscall(ctx);
     }
 
     debug("\nIDT event\n"
