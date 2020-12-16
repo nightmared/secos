@@ -1,7 +1,7 @@
 #include <syscall.h>
 #include <debug.h>
 
-void __attribute__((section(".userland_code"))) __userland_execute_syscall(uint8_t nb_args, uint32_t syscall_number, ...) {
+void __attribute__((section(".userland_code"))) userland_execute_syscall(uint8_t nb_args, uint32_t syscall_number, ...) {
     uint32_t eax, ebx, ecx, edx, esi;
     va_list params;
 

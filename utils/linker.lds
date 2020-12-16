@@ -28,6 +28,7 @@ SECTIONS
    
    __kernel_end__ = .;
 
+   . = ALIGN(4096);
    __userland_start__ = .;
    .userland : { KEEP(*(.userland_code)) KEEP(*(.userland_data)) } : phrw
    __userland_end__ = .;

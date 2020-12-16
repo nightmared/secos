@@ -11,16 +11,19 @@ uint8_t nb_available_mem_regions = 4;
 void print_pt(pte32_t *pt) {
     printf("\nPT description:\n");
     for (int i = 0; i < 1024; i++) {
-        printf("%d: %08p (user: %d, present: %d, writable: %d)\n", i, (pt+i)->addr<<12, (pt+i)->lvl, (pt+i)->p, (pt+i)->rw);
+        if ((pt+i)->p) {
+            printf("%d: %08p (user: %d, writable: %d)\n", i, (pt+i)->addr<<12, (pt+i)->lvl, (pt+i)->rw);
+        }
     }
 }
 
 void print_pdt(pde32_t *pdt) {
-    printf("%p\n", pdt);
     printf("\nPDT description:\n");
     for (int i = 0; i < 1024; i++) {
         pde32_t* pde = pdt+i;
-        printf("%d: %08p (user: %d, present: %d, writable: %d)\n", i, pde->addr<<12, pde->lvl, pde->p, pde->rw);
+        if (pde->p) {
+            printf("%d: %08p (user: %d, writable: %d)\n", i, pde->addr<<12, pde->lvl, pde->rw);
+        }
     }
 }
 

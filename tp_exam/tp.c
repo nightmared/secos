@@ -61,12 +61,6 @@ void tp() {
         return;
     }
 
-    //print_pdt(proc1.pdt);
-    //print_pt((pte32_t*)((proc1.pdt+1)->addr<<12));
-    //print_pt((pte32_t*)((proc1.pdt+2)->addr<<12));
-    printf("%p\n", &__gdt_start__);
-
-
     // alloc a shared memory region
     void* shared_region = process_alloc_contiguous_pages(&proc1, 0x200000, 1, MEM_SHARED);
     if (shared_region == NULL) {
@@ -74,6 +68,9 @@ void tp() {
         return;
     }
 
+    print_pdt(proc1.pdt);
+
+    // TODO: map the userland code in the task memory
 
     run_task(&proc1);
 }

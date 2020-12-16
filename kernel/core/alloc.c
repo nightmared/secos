@@ -1,6 +1,8 @@
 #include <alloc.h>
 #include <scheduler.h>
 
+extern int __userland_start__, __userland_end__;
+
 // create the necessary PDEs/PTEs and return a pointer to the allocated memory region
 void* alloc_contiguous_pages(uint32_t nb_pages) {
     for (uint8_t cur_mem_region; cur_mem_region < nb_available_mem_regions; cur_mem_region++) {
@@ -75,9 +77,9 @@ void* alloc_contiguous_pages(uint32_t nb_pages) {
 
 bool_t map_contiguous_pages_in_process(struct process *p, uint32_t virt_addr, uint32_t nb_pages, uint32_t phys_addr) {
     uint32_t missing_pts = 0;
-    uint32_t last_pd32_idx = 0;
+    sint32_t last_pd32_idx = -1;
     for (uint32_t addr = virt_addr; addr < virt_addr+(nb_pages<<PG_4K_SHIFT); addr += PG_4K_SIZE) {
-        if ((p->pdt+pd32_idx(addr))->p == 0 && pd32_idx(addr) != last_pd32_idx) {
+        if ((p->pdt+pd32_idx(addr))->p == 0 && (sint32_t)pd32_idx(addr) != last_pd32_idx) {
             last_pd32_idx = pd32_idx(addr);
             missing_pts++;
         }
@@ -93,7 +95,7 @@ bool_t map_contiguous_pages_in_process(struct process *p, uint32_t virt_addr, ui
         memset(phys_allocated_pts, 0, nb_pages<<PG_4K_SHIFT);
 
         uint32_t current_new_pt = 0;
-        // map the PTs in the PDT, and set up the PTEs
+        // map the PTs in the PDT
         for (uint32_t i = 0; i < nb_pages; i++) {
             uint32_t addr = virt_addr+(i<<PG_4K_SHIFT);
             pde32_t *pde = p->pdt+pd32_idx(addr);
@@ -105,13 +107,17 @@ bool_t map_contiguous_pages_in_process(struct process *p, uint32_t virt_addr, ui
                 pde->addr = ((uint32_t)phys_allocated_pts+current_new_pt)>>PG_4K_SHIFT;
                 current_new_pt++;
             }
-
-            pte32_t *pte = get_pte_for_addr(p->pdt, addr);
-            pte->p = 1;
-            pte->rw = 1;
-            pte->lvl = 1;
-            pte->addr = (phys_addr>>PG_4K_SHIFT)+i;
         }
+    }
+
+    // set up the PTEs
+    for (uint32_t i = 0; i < nb_pages; i++) {
+        uint32_t addr = virt_addr+(i<<PG_4K_SHIFT);
+        pte32_t *pte = get_pte_for_addr(p->pdt, addr);
+        pte->p = 1;
+        pte->rw = 1;
+        pte->lvl = 1;
+        pte->addr = (phys_addr>>PG_4K_SHIFT)+i;
     }
 
     return true;
@@ -248,6 +254,16 @@ void* init_process_memory(struct process *p) {
     (p->pdt+pd32_idx(0xc0000000))->rw = 0;
     (p->pdt+pd32_idx(0xc0000000))->addr = (uint32_t)shared_pt>>PG_4K_SHIFT;
     setup_shared_pde(shared_pt);
+
+    // map the userland code (with identity mapping of course ;))
+    uint32_t size_userland_section = (uint32_t)&__userland_end__-(uint32_t)&__userland_start__;
+    uint32_t nb_pages_userland = (size_userland_section>>PG_4K_SHIFT)+((size_userland_section&0x3ff) ? 1 : 0);
+    if (!map_contiguous_pages_in_process(p, (uint32_t)&__userland_start__, nb_pages_userland, (uint32_t)&__userland_start__)) {
+        debug("init_process_memory: couldn't map the userland pages\n");
+        free_contiguous_pages(pdt, (uint32_t)kernel_addr, (uint32_t)kernel_addr+PG_4M_SIZE);
+
+        return NULL;
+    }
 
     return kernel_addr;
 }

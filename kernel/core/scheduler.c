@@ -60,14 +60,14 @@ inline void __attribute__((always_inline)) update_tss(struct process *p) {
 }
 
 void __attribute__((section(".userland_shared_code"))) __run_task(struct process *p) {
-    size_t (*print)(const char *format, ...) = printf;
     update_tss(p);
-    (print)("called\n");
-    (print)("%p\n", p->context->esp.raw);
-    (print)("%p\n", p->context->eip.raw);
-    (print)("%p\n", p->context->cs.raw);
-    (print)("%p\n", p->context->ss.raw);
-    // switch to the userland stack to do the iret (other stacks are either not accessible or ampped as read-only)
+    // size_t (*print)(const char *format, ...) = printf;
+    // (print)("called\n");
+    // (print)("%p\n", p->context->esp.raw);
+    // (print)("%p\n", p->context->eip.raw);
+    // (print)("%p\n", p->context->cs.raw);
+    // (print)("%p\n", p->context->ss.raw);
+    // // switch to the userland stack to do the iret (other stacks are either not accessible or ampped as read-only)
     asm volatile(
         "mov %3, %%ds \n\t"
         "mov %3, %%es \n\t"
