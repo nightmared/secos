@@ -10,6 +10,7 @@ struct page process_shared_info[2];
 struct elem_entry *process_shared_info_heap;
 
 struct process *current_process;
+bool_t scheduler_started = false;
 
 void prepare_scheduler(void) {
     process_list_heap = create_heap(4, process_list_reserved_memory);
@@ -23,6 +24,20 @@ void prepare_scheduler(void) {
         debug("prepare_scheduler: couldn't populate a heap for storing the metadata regarding shared mappings\n");
         panic("halted !");
     }
+}
+
+void start_scheduler() {
+    // take the first task if any
+    struct elem_entry *list = process_list_heap->next_entry;
+    if (list->next_entry == NULL) {
+        debug("start_scheduler: no task was registered\n");
+        panic("halted");
+    }
+
+    current_process = (struct process*)((uint32_t)list+sizeof(struct elem_entry));
+    scheduler_started = true;
+
+    run_task(current_process);
 }
 
 struct process *init_process(void* fun) {
@@ -53,8 +68,8 @@ struct process *init_process(void* fun) {
 
     out_process->context->eip.raw = (uint32_t)fun;
     out_process->context->esp.raw = (uint32_t)out_process->userland_stack+PG_4K_SIZE;
-    out_process->context->cs.raw = gdt_seg_sel(gdt_code_idx+GDT_RING3_OFFSET, 3);
-    out_process->context->ss.raw = gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3);
+    out_process->context->gpr.esp.raw = (uint32_t)out_process->userland_stack+PG_4K_SIZE;
+    out_process->context->gpr.ebp.raw = (uint32_t)out_process->userland_stack+PG_4K_SIZE;
 
     return out_process;
 }
@@ -78,17 +93,17 @@ void __attribute__((section(".userland_shared_code"))) __run_task(struct process
     update_tss(p);
 
     // recopy the context of the process to prepare the return
-    p->context->esp.raw -= sizeof(gpr_ctx_t)+4;
+    p->context->esp.raw -= 4;
+    uint32_t esp = p->context->esp.raw - sizeof(gpr_ctx_t);
     void* (*mcpy)(void*, void*, size_t) = memcpy;
-    mcpy((void*)p->context->esp.raw, &p->context->gpr, sizeof(gpr_ctx_t));
-    mcpy((void*)(p->context->esp.raw+sizeof(gpr_ctx_t)), &p->context->eip.raw, sizeof(uint32_t));
+    mcpy((void*)esp, &p->context->gpr, sizeof(gpr_ctx_t));
+    mcpy((void*)p->context->esp.raw, &p->context->eip.raw, sizeof(uint32_t));
 
-    // size_t (*print)(const char *format, ...) = printf;
-    // (print)("called\n");
-    // (print)("%p\n", p->context->esp.raw);
-    // (print)("%p\n", p->context->eip.raw);
-    // (print)("%p\n", p->context->cs.raw);
-    // (print)("%p\n", p->context->ss.raw);
+    //size_t (*print)(const char *format, ...) = printf;
+    //(print)("%p\n", p->context->eip.raw);
+    //(print)("%p\n", p->context->gpr.ebp.raw);
+    //(print)("%p\n", p->context->gpr.esp.raw);
+    //(print)("%p\n", p->context->esp.raw);
     asm volatile(
         "mov %3, %%ds \n\t"
         "mov %3, %%es \n\t"
@@ -97,16 +112,17 @@ void __attribute__((section(".userland_shared_code"))) __run_task(struct process
         "mov %2, %%esp \n\t"
         "push %3 \n\t"
         "push %2 \n\t"
-        "pushf \n\t"
+        // enables interrupts
+        "push $0x202 \n\t"
         "push %1 \n\t"
         "push %0 \n\t"
         "mov %4, %%cr3 \n\t"
         "iret"
         ::
         "r"(userland_return_from_syscall),
-        "r"(p->context->cs.raw),
-        "r"(p->context->esp.raw),
-        "r"(p->context->ss.raw),
+        "r"(gdt_seg_sel(gdt_code_idx+GDT_RING3_OFFSET, 3)),
+        "r"(esp),
+        "r"(gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3)),
         "r"(p->pdt)
     );
 }
@@ -116,16 +132,20 @@ void run_task(struct process *p) {
     (0xc0000000-(uint32_t)&__userland_mapped__+__run_task)(p);
 }
 
-void switch_to_next_task(struct process *p, int_ctx_t *ctx) {
+void switch_to_next_task(int_ctx_t *ctx) {
+    if (!scheduler_started) {
+        return;
+    }
+
+    printf("Switching from task %d\n", current_process->task_id);
+
     // save the context of the old running process
-    memcpy(p->context, ctx, sizeof(int_ctx_t));
+    memcpy(current_process->context, ctx, sizeof(int_ctx_t));
 
-
-    struct elem_entry *p_holder = (struct elem_entry*)((uint32_t)p-sizeof(struct elem_entry));
+    struct elem_entry *p_holder = (struct elem_entry*)((uint32_t)current_process-sizeof(struct elem_entry));
     struct elem_entry *list = p_holder->next_entry;
     if (list->next_entry != NULL) {
         struct process *np = (struct process*)((uint32_t)list+sizeof(struct elem_entry));
-        printf("switching\n");
         run_task(np);
     } else {
         // restart at the beginning of the list
@@ -136,4 +156,5 @@ void switch_to_next_task(struct process *p, int_ctx_t *ctx) {
         run_task(np);
     }
     // TODO: handle the case where there is no longer any process in the list
+    printf("fuuuuuck\n");
 }

@@ -10,9 +10,10 @@ extern struct elem_entry *process_shared_info_heap;
 extern struct process *current_process;
 
 void prepare_scheduler(void);
+void start_scheduler();
 struct process *init_process(void* fun);
 
 void run_task(struct process *p);
-void switch_to_next_task(struct process *p, int_ctx_t *ctx);
+void switch_to_next_task(int_ctx_t *ctx);
 
 #endif // __SCHEDULER_H__

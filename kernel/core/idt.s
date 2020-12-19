@@ -36,8 +36,9 @@ eoi_pic1:
 ** ERR CODE
 ** INT NUMBER
 ** EAX
-** ...        
+** ...
 ** EDI
+** CR3
 */
 idt_common:
     pusha
@@ -49,12 +50,11 @@ idt_common:
     je      idt_no_cr3_reload
     mov     %ebx, %cr3
 idt_no_cr3_reload:
-    // jump to the correct position in kernel memory, we no longer need to do weird relocations manually (nor at all)
+    // jump to the correct position in kernel memory, so we no longer need to do weird relocations
     mov     $jump_to_phys_addr, %ebx
     jmp     *%ebx
 jump_to_phys_addr:
-    mov     %esp, %eax
-    add     $4, %eax
+    lea     4(%esp), %eax
     call    intr_hdlr
 
 resume_from_intr:

@@ -40,8 +40,6 @@ void __attribute__((section(".userland_code"))) userland_execute_syscall(uint8_t
     va_end(params);
     asm volatile (
         "int $0x80 \n\t"
-        "leave \n\t"
-        "ret"
         :: "a"(eax), "b"(ebx), "c"(ecx), "d"(edx), "S"(esi)
     );
 }
@@ -71,6 +69,6 @@ void __regparm__(1) kernel_syscall(int_ctx_t *ctx) {
             debug("Unsupported syscall %d from task %d\n", syscall_nb, current_process->task_id);
     }
 
-    switch_to_next_task(current_process, ctx);
+    switch_to_next_task(ctx);
 }
 
