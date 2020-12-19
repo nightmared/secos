@@ -113,5 +113,11 @@ void tp() {
     print_pdt(proc2->pdt);
     process_list_allocations(proc2);
 
+    printf("\n");
+    printf("---------------------------------\n");
+    printf("------ STARTING YOUR TASKS ------\n");
+    printf("---------------------------------\n");
+    printf("\n");
+
     start_scheduler();
 }

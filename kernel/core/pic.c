@@ -63,8 +63,6 @@ void pic_handler(int_ctx_t *ctx) {
     case PIC_OFFSET:
         //debug("Timer interrupt\n");
         time_incr();
-        // beware, ss and esp were possibly not copied if we come from the same privilege level!
-        printf("coming\n");
         switch_to_next_task(ctx);
 
     break;

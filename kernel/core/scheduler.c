@@ -76,12 +76,6 @@ struct process *init_process(void* fun) {
 
 inline void __attribute__((always_inline)) __attribute__((section(".userland_shared_code"))) update_tss(struct process *p) {
     tss_t *kernel_tss = (tss_t*)&__tss_start__;
-    //uint32_t esp0 = 0;
-    //asm volatile("mov %%esp, %0" : "=m"(esp0));
-    //kernel_tss->s0.esp = esp0;
-    //TODO: fix this ?
-
-    // size_t (*print)(const char *format, ...) = printf;
     kernel_tss->s0.esp = (uint32_t)p->kernelland_stack+PG_4K_SIZE;
     // say that the tss is available and not busy (useful for switching from a task to another)
     mygdt[gdt_tss_idx].type = SEG_DESC_SYS_TSS_AVL_32;
@@ -99,11 +93,6 @@ void __attribute__((section(".userland_shared_code"))) __run_task(struct process
     mcpy((void*)esp, &p->context->gpr, sizeof(gpr_ctx_t));
     mcpy((void*)p->context->esp.raw, &p->context->eip.raw, sizeof(uint32_t));
 
-    //size_t (*print)(const char *format, ...) = printf;
-    //(print)("%p\n", p->context->eip.raw);
-    //(print)("%p\n", p->context->gpr.ebp.raw);
-    //(print)("%p\n", p->context->gpr.esp.raw);
-    //(print)("%p\n", p->context->esp.raw);
     asm volatile(
         "mov %3, %%ds \n\t"
         "mov %3, %%es \n\t"
@@ -137,7 +126,7 @@ void switch_to_next_task(int_ctx_t *ctx) {
         return;
     }
 
-    printf("Switching from task %d\n", current_process->task_id);
+    //printf("Switching from task %d\n", current_process->task_id);
 
     // save the context of the old running process
     memcpy(current_process->context, ctx, sizeof(int_ctx_t));
@@ -155,6 +144,6 @@ void switch_to_next_task(int_ctx_t *ctx) {
         struct process *np = (struct process*)((uint32_t)list+sizeof(struct elem_entry));
         run_task(np);
     }
-    // TODO: handle the case where there is no longer any process in the list
-    printf("fuuuuuck\n");
+    // handle (badly !) the case where there is no longer any process in the list
+    panic("No more user tasks, halting…");
 }
