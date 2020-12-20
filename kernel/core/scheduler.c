@@ -66,6 +66,9 @@ struct process *init_process(void* fun) {
         return NULL;
     }
 
+    out_process->context->cs.raw = gdt_seg_sel(gdt_code_idx+GDT_RING3_OFFSET, 3);
+    out_process->context->ss.raw = gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3);
+    out_process->context->eip.raw = (uint32_t)fun;
     out_process->context->eip.raw = (uint32_t)fun;
     out_process->context->esp.raw = (uint32_t)out_process->userland_stack+PG_4K_SIZE;
     out_process->context->gpr.esp.raw = (uint32_t)out_process->userland_stack+PG_4K_SIZE;
@@ -101,18 +104,20 @@ void __attribute__((section(".userland_shared_code"))) __run_task(struct process
         "mov %2, %%esp \n\t"
         "push %3 \n\t"
         "push %2 \n\t"
-        // enables interrupts
-        "push $0x202 \n\t"
+        // enable interrupts in the flags register of the task, while preserving the flags that may have been set in an earlier run of the task
+        "or $0x202, %5 \n\t"
+        "push %5 \n\t"
         "push %1 \n\t"
         "push %0 \n\t"
         "mov %4, %%cr3 \n\t"
         "iret"
         ::
         "r"(userland_return_from_syscall),
-        "r"(gdt_seg_sel(gdt_code_idx+GDT_RING3_OFFSET, 3)),
+        "r"(p->context->cs.raw),
         "r"(esp),
-        "r"(gdt_seg_sel(gdt_data_idx+GDT_RING3_OFFSET, 3)),
-        "r"(p->pdt)
+        "r"(p->context->ss.raw),
+        "r"(p->pdt),
+        "r"(p->context->eflags.raw)
     );
 }
 
@@ -128,8 +133,11 @@ void switch_to_next_task(int_ctx_t *ctx) {
 
     //printf("Switching from task %d\n", current_process->task_id);
 
-    // save the context of the old running process
-    memcpy(current_process->context, ctx, sizeof(int_ctx_t));
+    // check if we come from the kernel or the userland
+    if (ctx->cs.raw != (uint32_t)gdt_krn_seg_sel(gdt_code_idx)) {
+        // save the context of the old running process
+        memcpy(current_process->context, ctx, sizeof(int_ctx_t));
+    }
 
     struct elem_entry *p_holder = (struct elem_entry*)((uint32_t)current_process-sizeof(struct elem_entry));
     struct elem_entry *list = p_holder->next_entry;
@@ -144,6 +152,7 @@ void switch_to_next_task(int_ctx_t *ctx) {
         struct process *np = (struct process*)((uint32_t)list+sizeof(struct elem_entry));
         run_task(np);
     }
+
     // handle (badly !) the case where there is no longer any process in the list
     panic("No more user tasks, halting…");
 }

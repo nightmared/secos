@@ -13,14 +13,13 @@
 #define TASK1_SHARED_ADDR 0x2000000
 #define TASK2_SHARED_ADDR 0x3000000
 
-// trickery to tell have the string be stored in userspace, otherwise the check for print of the kernel side will refuse to execute the syscall
+// trickery to tell have the string be stored in userspace, otherwise the check for calling printf on the kernel side will refuse to execute the syscall
 static __attribute__((section(".userland_data"))) char show_int[] = "%d\n";
 
 void __attribute__((section(".userland_code"))) task1() {
     volatile uint32_t *v = (uint32_t*)TASK1_SHARED_ADDR;
     while (1) {
         (*v)++;
-        //sleep(250);
     }
 }
 
@@ -28,8 +27,6 @@ void __attribute__((section(".userland_code"))) task2() {
     volatile uint32_t *v = (uint32_t*)TASK2_SHARED_ADDR;
     while (1) {
         userland_execute_syscall(2, SYSCALL_PRINTF, (uint32_t)show_int, *v);
-        //userland_execute_syscall(4, 0, 1, 2, 3, 4);
-        //sleep(250);
     }
 }
 
